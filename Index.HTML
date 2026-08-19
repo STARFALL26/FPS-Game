@@ -1,0 +1,5165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+  >
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #88c8e7;
+      font-family: Arial, Helvetica, sans-serif;
+      user-select: none;
+      touch-action: none;
+    }
+
+    #game {
+      position: fixed;
+      inset: 0;
+      cursor: pointer;
+    }
+
+    body.controlled #game {
+      cursor: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    #loading {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      background:
+        linear-gradient(
+          #79bfe3 0%,
+          #cce7f1 54%,
+          #65884c 55%,
+          #385b2f 100%
+        );
+
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+
+      text-shadow:
+        0 2px 5px rgba(0,0,0,.55);
+    }
+
+    #hud {
+      position: fixed;
+      left: 16px;
+      top: 16px;
+      z-index: 50;
+
+      padding: 11px 14px;
+
+      border:
+        1px solid rgba(255,255,255,.14);
+
+      border-radius: 9px;
+
+      background:
+        rgba(10,15,12,.35);
+
+      backdrop-filter:
+        blur(5px);
+
+      color: white;
+
+      font-size: 15px;
+      font-weight: bold;
+      line-height: 1.55;
+
+      text-shadow:
+        0 2px 4px black;
+
+      pointer-events: none;
+    }
+
+    #mode {
+      margin-top: 4px;
+      color: #d9ebd3;
+      font-size: 12px;
+    }
+
+    #controls {
+      position: fixed;
+      right: 16px;
+      top: 16px;
+      z-index: 50;
+
+      padding: 10px 13px;
+
+      border-radius: 9px;
+
+      background:
+        rgba(10,15,12,.32);
+
+      backdrop-filter:
+        blur(5px);
+
+      color: white;
+
+      font-size: 13px;
+      line-height: 1.55;
+
+      pointer-events: none;
+    }
+
+    #controlPrompt {
+      position: fixed;
+      left: 50%;
+      top: 72%;
+
+      transform:
+        translate(-50%,-50%);
+
+      z-index: 60;
+
+      padding: 11px 18px;
+
+      border-radius: 22px;
+
+      background:
+        rgba(0,0,0,.45);
+
+      color: white;
+
+      font-size: 14px;
+      font-weight: bold;
+
+      pointer-events: none;
+    }
+
+    body.controlled #controlPrompt {
+      display: none;
+    }
+
+    #bigMessage {
+      position: fixed;
+      left: 50%;
+      top: 38%;
+
+      transform:
+        translate(-50%,-50%);
+
+      z-index: 160;
+
+      opacity: 0;
+
+      color: white;
+
+      font-size:
+        clamp(22px,3vw,38px);
+
+      font-weight: 900;
+      letter-spacing: .04em;
+
+      text-shadow:
+        0 3px 9px black;
+
+      pointer-events: none;
+
+      transition:
+        opacity .08s ease;
+    }
+
+    #bigMessage.show {
+      opacity: 1;
+    }
+
+    #crosshair {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+
+      width: 30px;
+      height: 30px;
+
+      transform:
+        translate(-50%,-50%);
+
+      z-index: 100;
+
+      pointer-events: none;
+    }
+
+    .crossLine {
+      position: absolute;
+
+      background: white;
+
+      box-shadow:
+        0 0 2px black,
+        0 0 5px rgba(0,0,0,.85);
+    }
+
+    .crossTop {
+      width: 2px;
+      height: 7px;
+      left: 14px;
+      top: 0;
+    }
+
+    .crossBottom {
+      width: 2px;
+      height: 7px;
+      left: 14px;
+      bottom: 0;
+    }
+
+    .crossLeft {
+      width: 7px;
+      height: 2px;
+      left: 0;
+      top: 14px;
+    }
+
+    .crossRight {
+      width: 7px;
+      height: 2px;
+      right: 0;
+      top: 14px;
+    }
+
+    #crossDot {
+      position: absolute;
+      left: 13px;
+      top: 13px;
+
+      width: 4px;
+      height: 4px;
+
+      border-radius: 50%;
+
+      background: #ff3a3a;
+
+      box-shadow:
+        0 0 3px black;
+    }
+
+    body.ads #crosshair {
+      transform:
+        translate(-50%,-50%)
+        scale(.68);
+
+      opacity: .84;
+    }
+
+    #hitMarker {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+
+      width: 28px;
+      height: 28px;
+
+      transform:
+        translate(-50%,-50%);
+
+      display: none;
+
+      z-index: 110;
+
+      pointer-events: none;
+    }
+
+    #hitMarker::before,
+    #hitMarker::after {
+      content: "";
+
+      position: absolute;
+
+      left: 13px;
+      top: 3px;
+
+      width: 2px;
+      height: 22px;
+
+      background: white;
+
+      box-shadow:
+        0 0 3px black;
+    }
+
+    #hitMarker::before {
+      transform: rotate(45deg);
+    }
+
+    #hitMarker::after {
+      transform: rotate(-45deg);
+    }
+
+    #joystick {
+      position: fixed;
+      left: 25px;
+      bottom: 28px;
+
+      width: 120px;
+      height: 120px;
+
+      border-radius: 50%;
+
+      background:
+        rgba(0,0,0,.23);
+
+      border:
+        2px solid rgba(255,255,255,.35);
+
+      z-index: 90;
+    }
+
+    #stick {
+      position: absolute;
+      left: 35px;
+      top: 35px;
+
+      width: 50px;
+      height: 50px;
+
+      border-radius: 50%;
+
+      background:
+        rgba(255,255,255,.74);
+    }
+
+    #fireButton,
+    #adsButton {
+      position: fixed;
+
+      z-index: 90;
+
+      border-radius: 50%;
+
+      border:
+        2px solid rgba(255,255,255,.44);
+
+      color: white;
+
+      font-weight: bold;
+    }
+
+    #fireButton {
+      right: 26px;
+      bottom: 32px;
+
+      width: 88px;
+      height: 88px;
+
+      background:
+        rgba(172,30,30,.8);
+    }
+
+    #adsButton {
+      right: 45px;
+      bottom: 134px;
+
+      width: 66px;
+      height: 66px;
+
+      background:
+        rgba(27,44,34,.76);
+    }
+
+    @media(pointer:fine) {
+      #joystick,
+      #fireButton,
+      #adsButton {
+        display: none;
+      }
+    }
+
+    @media(pointer:coarse) {
+      #controls,
+      #controlPrompt {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="game"></div>
+
+<div id="loading">
+  Loading shooting range...
+</div>
+
+<div id="hud">
+  HEALTH <span id="health">100</span><br>
+  AMMO <span id="ammo">12</span><br>
+  SCORE <span id="score">0</span>
+
+  <div id="mode">
+    HIP FIRE
+  </div>
+</div>
+
+<div id="controls">
+  Click: Lock Mouse<br>
+  Mouse: Look 360°<br>
+  WASD: Move<br>
+  Left Click: Fire<br>
+  Hold SHIFT: ADS<br>
+  R: Reload<br>
+  ESC: Release Mouse
+</div>
+
+<div id="controlPrompt">
+  Click to lock mouse
+</div>
+
+<div id="bigMessage"></div>
+
+<div id="crosshair">
+  <div class="crossLine crossTop"></div>
+  <div class="crossLine crossBottom"></div>
+  <div class="crossLine crossLeft"></div>
+  <div class="crossLine crossRight"></div>
+  <div id="crossDot"></div>
+</div>
+
+<div id="hitMarker"></div>
+
+<div id="joystick">
+  <div id="stick"></div>
+</div>
+
+<button id="fireButton">
+  FIRE
+</button>
+
+<button id="adsButton">
+  ADS
+</button>
+
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
+
+
+<script>
+
+if (typeof THREE === "undefined") {
+  throw new Error("Three.js failed to load.");
+}
+
+
+/* =========================================================
+   DOM
+========================================================= */
+
+const container =
+  document.getElementById("game");
+
+const loading =
+  document.getElementById("loading");
+
+const ammoText =
+  document.getElementById("ammo");
+
+const scoreText =
+  document.getElementById("score");
+
+const modeText =
+  document.getElementById("mode");
+
+const bigMessage =
+  document.getElementById("bigMessage");
+
+const hitMarker =
+  document.getElementById("hitMarker");
+
+
+/* =========================================================
+   AUDIO
+========================================================= */
+
+let audioContext = null;
+let compressor = null;
+let masterGain = null;
+
+
+function ensureAudio() {
+
+  if (!audioContext) {
+
+    audioContext =
+      new (
+        window.AudioContext ||
+        window.webkitAudioContext
+      )();
+
+    compressor =
+      audioContext.createDynamicsCompressor();
+
+    compressor.threshold.value = -12;
+    compressor.knee.value = 8;
+    compressor.ratio.value = 10;
+    compressor.attack.value = .0005;
+    compressor.release.value = .12;
+
+    masterGain =
+      audioContext.createGain();
+
+    masterGain.gain.value = .68;
+
+    compressor.connect(
+      masterGain
+    );
+
+    masterGain.connect(
+      audioContext.destination
+    );
+  }
+
+  if (
+    audioContext.state ===
+    "suspended"
+  ) {
+    audioContext.resume();
+  }
+}
+
+
+function createNoiseBuffer(duration) {
+
+  const length =
+    Math.ceil(
+      audioContext.sampleRate *
+      duration
+    );
+
+  const buffer =
+    audioContext.createBuffer(
+      1,
+      length,
+      audioContext.sampleRate
+    );
+
+  const data =
+    buffer.getChannelData(0);
+
+  for (
+    let i = 0;
+    i < length;
+    i++
+  ) {
+    data[i] =
+      Math.random() * 2 - 1;
+  }
+
+  return buffer;
+}
+
+
+function noiseImpulse(
+  duration,
+  volume,
+  type,
+  frequency,
+  decay = 3,
+  delay = 0
+) {
+
+  ensureAudio();
+
+  const source =
+    audioContext.createBufferSource();
+
+  source.buffer =
+    createNoiseBuffer(duration);
+
+  const filter =
+    audioContext.createBiquadFilter();
+
+  filter.type = type;
+  filter.frequency.value =
+    frequency;
+
+  const gain =
+    audioContext.createGain();
+
+  const now =
+    audioContext.currentTime +
+    delay;
+
+  gain.gain.setValueAtTime(
+    volume,
+    now
+  );
+
+  for (
+    let i = 1;
+    i <= 7;
+    i++
+  ) {
+
+    const life =
+      1 - i / 7;
+
+    gain.gain.linearRampToValueAtTime(
+      Math.max(
+        .0001,
+        volume *
+        Math.pow(
+          life,
+          decay
+        )
+      ),
+      now +
+      duration *
+      i / 7
+    );
+  }
+
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(compressor);
+
+  source.start(now);
+  source.stop(
+    now + duration
+  );
+}
+
+
+function lowImpulse(
+  startFrequency,
+  endFrequency,
+  duration,
+  volume,
+  delay = 0
+) {
+
+  ensureAudio();
+
+  const oscillator =
+    audioContext.createOscillator();
+
+  const gain =
+    audioContext.createGain();
+
+  const now =
+    audioContext.currentTime +
+    delay;
+
+  oscillator.type = "triangle";
+
+  oscillator.frequency.setValueAtTime(
+    startFrequency,
+    now
+  );
+
+  oscillator.frequency.exponentialRampToValueAtTime(
+    Math.max(
+      20,
+      endFrequency
+    ),
+    now + duration
+  );
+
+  gain.gain.setValueAtTime(
+    volume,
+    now
+  );
+
+  gain.gain.exponentialRampToValueAtTime(
+    .0001,
+    now + duration
+  );
+
+  oscillator.connect(gain);
+  gain.connect(compressor);
+
+  oscillator.start(now);
+  oscillator.stop(
+    now + duration
+  );
+}
+
+
+function metalClick(
+  power = 1,
+  delay = 0
+) {
+
+  noiseImpulse(
+    .018,
+    .20 * power,
+    "highpass",
+    3300,
+    4,
+    delay
+  );
+
+  noiseImpulse(
+    .035,
+    .10 * power,
+    "bandpass",
+    1900,
+    3,
+    delay + .002
+  );
+
+  lowImpulse(
+    320,
+    140,
+    .038,
+    .05 * power,
+    delay
+  );
+}
+
+
+function soundGunshot() {
+
+  noiseImpulse(
+    .006,
+    1,
+    "highpass",
+    3600,
+    5
+  );
+
+  noiseImpulse(
+    .022,
+    .94,
+    "bandpass",
+    1750,
+    3
+  );
+
+  noiseImpulse(
+    .05,
+    .48,
+    "lowpass",
+    820,
+    3
+  );
+
+  lowImpulse(
+    145,
+    48,
+    .085,
+    .43
+  );
+
+  metalClick(
+    .52,
+    .015
+  );
+}
+
+
+function soundEmpty() {
+  metalClick(.72);
+}
+
+
+function soundMagOut() {
+  metalClick(.85);
+}
+
+
+function soundMagIn() {
+
+  noiseImpulse(
+    .055,
+    .32,
+    "lowpass",
+    900,
+    3
+  );
+
+  lowImpulse(
+    175,
+    60,
+    .075,
+    .26
+  );
+
+  metalClick(
+    1.2,
+    .005
+  );
+}
+
+
+function soundSlidePull() {
+
+  noiseImpulse(
+    .115,
+    .18,
+    "bandpass",
+    2100,
+    1.4
+  );
+}
+
+
+function soundSlideRelease() {
+
+  metalClick(1.6);
+
+  noiseImpulse(
+    .035,
+    .24,
+    "bandpass",
+    2150,
+    4
+  );
+}
+
+
+/* =========================================================
+   RENDERER
+========================================================= */
+
+const renderer =
+  new THREE.WebGLRenderer({
+    antialias: true,
+    powerPreference:
+      "high-performance"
+  });
+
+
+renderer.setPixelRatio(
+  Math.min(
+    devicePixelRatio,
+    2
+  )
+);
+
+
+renderer.setSize(
+  innerWidth,
+  innerHeight
+);
+
+
+renderer.shadowMap.enabled =
+  true;
+
+
+renderer.shadowMap.type =
+  THREE.PCFSoftShadowMap;
+
+
+renderer.outputColorSpace =
+  THREE.SRGBColorSpace;
+
+
+renderer.toneMapping =
+  THREE.ACESFilmicToneMapping;
+
+
+renderer.toneMappingExposure =
+  1.07;
+
+
+container.appendChild(
+  renderer.domElement
+);
+
+
+/* =========================================================
+   SCENE
+========================================================= */
+
+const scene =
+  new THREE.Scene();
+
+
+scene.background =
+  new THREE.Color(
+    0x87c8e8
+  );
+
+
+scene.fog =
+  new THREE.FogExp2(
+    0xc8dfe5,
+    .0095
+  );
+
+
+const camera =
+  new THREE.PerspectiveCamera(
+    71,
+    innerWidth / innerHeight,
+    .035,
+    230
+  );
+
+
+camera.rotation.order =
+  "YXZ";
+
+
+scene.add(camera);
+
+
+/* =========================================================
+   LIGHTING
+========================================================= */
+
+scene.add(
+  new THREE.HemisphereLight(
+    0xecf9ff,
+    0x415a34,
+    2.5
+  )
+);
+
+
+const sun =
+  new THREE.DirectionalLight(
+    0xfff2d3,
+    3.45
+  );
+
+
+sun.position.set(
+  -12,
+  20,
+  8
+);
+
+
+sun.castShadow =
+  true;
+
+
+sun.shadow.mapSize.set(
+  2048,
+  2048
+);
+
+
+scene.add(sun);
+
+
+/* =========================================================
+   SKY
+========================================================= */
+
+const sky =
+  new THREE.Mesh(
+    new THREE.SphereGeometry(
+      150,
+      72,
+      48
+    ),
+    new THREE.MeshBasicMaterial({
+      color: 0x92d0ee,
+      side: THREE.BackSide
+    })
+  );
+
+
+scene.add(sky);
+
+
+/* =========================================================
+   GRASS
+========================================================= */
+
+function createGrassTexture() {
+
+  const canvas =
+    document.createElement(
+      "canvas"
+    );
+
+  canvas.width = 512;
+  canvas.height = 512;
+
+  const ctx =
+    canvas.getContext("2d");
+
+  const gradient =
+    ctx.createLinearGradient(
+      0,
+      0,
+      512,
+      512
+    );
+
+  gradient.addColorStop(
+    0,
+    "#718e51"
+  );
+
+  gradient.addColorStop(
+    1,
+    "#476c39"
+  );
+
+  ctx.fillStyle =
+    gradient;
+
+  ctx.fillRect(
+    0,
+    0,
+    512,
+    512
+  );
+
+  for (
+    let i = 0;
+    i < 12000;
+    i++
+  ) {
+
+    const alpha =
+      .03 +
+      Math.random() * .12;
+
+    ctx.fillStyle =
+      Math.random() > .5
+        ? `rgba(30,70,25,${alpha})`
+        : `rgba(140,165,82,${alpha})`;
+
+    ctx.fillRect(
+      Math.random() * 512,
+      Math.random() * 512,
+      1 + Math.random() * 2,
+      1 + Math.random() * 2
+    );
+  }
+
+  const texture =
+    new THREE.CanvasTexture(
+      canvas
+    );
+
+  texture.wrapS =
+    THREE.RepeatWrapping;
+
+  texture.wrapT =
+    THREE.RepeatWrapping;
+
+  texture.repeat.set(
+    36,
+    36
+  );
+
+  texture.colorSpace =
+    THREE.SRGBColorSpace;
+
+  return texture;
+}
+
+
+const ground =
+  new THREE.Mesh(
+    new THREE.PlaneGeometry(
+      200,
+      200
+    ),
+    new THREE.MeshStandardMaterial({
+      map:
+        createGrassTexture(),
+      roughness:
+        .98
+    })
+  );
+
+
+ground.rotation.x =
+  -Math.PI / 2;
+
+
+ground.receiveShadow =
+  true;
+
+
+scene.add(ground);
+
+
+/* =========================================================
+   HILLS
+========================================================= */
+
+function addHill(
+  x,
+  z,
+  width,
+  height,
+  depth,
+  color
+) {
+
+  const hill =
+    new THREE.Mesh(
+      new THREE.SphereGeometry(
+        1,
+        60,
+        40
+      ),
+      new THREE.MeshStandardMaterial({
+        color,
+        roughness: 1
+      })
+    );
+
+  hill.scale.set(
+    width,
+    height,
+    depth
+  );
+
+  hill.position.set(
+    x,
+    -height * .36,
+    z
+  );
+
+  scene.add(hill);
+}
+
+
+addHill(
+  -28,-47,22,7,13,0x648552
+);
+
+addHill(
+  8,-55,30,8,16,0x678959
+);
+
+addHill(
+  40,-48,22,6,13,0x607f50
+);
+
+
+/* =========================================================
+   WALL
+========================================================= */
+
+const wall =
+  new THREE.Mesh(
+    new THREE.BoxGeometry(
+      13,
+      6,
+      .45
+    ),
+    new THREE.MeshStandardMaterial({
+      color:
+        0xb3aca1,
+      roughness:
+        .88
+    })
+  );
+
+
+wall.position.set(
+  0,
+  3,
+  -18
+);
+
+
+wall.receiveShadow =
+  true;
+
+
+scene.add(wall);
+
+
+/* =========================================================
+   TARGET
+========================================================= */
+
+const target =
+  new THREE.Group();
+
+
+target.position.set(
+  0,
+  2.8,
+  -17.755
+);
+
+
+scene.add(target);
+
+
+const targetBacking =
+  new THREE.Mesh(
+    new THREE.CircleGeometry(
+      1.42,
+      128
+    ),
+    new THREE.MeshStandardMaterial({
+      color:
+        0x3d3832,
+      roughness:
+        .88
+    })
+  );
+
+
+targetBacking.position.z =
+  -.015;
+
+
+target.add(
+  targetBacking
+);
+
+
+[
+  [1.32,0xeee9df],
+  [1.08,0x242526],
+  [.86,0xeee9df],
+  [.63,0xbd302d],
+  [.40,0xeee9df],
+  [.19,0xd72824]
+]
+.forEach(
+  (data,index) => {
+
+    const ring =
+      new THREE.Mesh(
+        new THREE.CircleGeometry(
+          data[0],
+          128
+        ),
+        new THREE.MeshStandardMaterial({
+          color:
+            data[1],
+          roughness:
+            .8,
+          side:
+            THREE.DoubleSide
+        })
+      );
+
+    ring.position.z =
+      index * .0025;
+
+    target.add(ring);
+  }
+);
+
+
+/* =========================================================
+   TREES
+========================================================= */
+
+const trunkMaterial =
+  new THREE.MeshStandardMaterial({
+    color:
+      0x654623,
+    roughness:
+      1
+  });
+
+
+const foliageMaterial =
+  new THREE.MeshStandardMaterial({
+    color:
+      0x42783b,
+    roughness:
+      .96
+  });
+
+
+function addTree(
+  x,
+  z,
+  scale
+) {
+
+  const tree =
+    new THREE.Group();
+
+  const trunk =
+    new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        .13 * scale,
+        .22 * scale,
+        2.8 * scale,
+        32
+      ),
+      trunkMaterial
+    );
+
+  trunk.position.y =
+    1.4 * scale;
+
+  tree.add(trunk);
+
+  const leaves =
+    new THREE.Mesh(
+      new THREE.SphereGeometry(
+        .95 * scale,
+        36,
+        28
+      ),
+      foliageMaterial
+    );
+
+  leaves.position.y =
+    3.25 * scale;
+
+  leaves.scale.y =
+    1.15;
+
+  tree.add(leaves);
+
+  tree.position.set(
+    x,
+    0,
+    z
+  );
+
+  scene.add(tree);
+}
+
+
+addTree(-9,-21,1.15);
+addTree(9,-22,1.1);
+addTree(-15,-29,1.5);
+addTree(15,-31,1.35);
+addTree(-20,-40,1.7);
+addTree(20,-42,1.65);
+
+
+/* =========================================================
+   MATERIALS
+========================================================= */
+
+const slideMaterial =
+  new THREE.MeshPhysicalMaterial({
+    color:
+      0x222629,
+    metalness:
+      .59,
+    roughness:
+      .25,
+    clearcoat:
+      .20
+  });
+
+
+const polymerMaterial =
+  new THREE.MeshPhysicalMaterial({
+    color:
+      0x101314,
+    metalness:
+      .02,
+    roughness:
+      .72
+  });
+
+
+const darkMetal =
+  new THREE.MeshStandardMaterial({
+    color:
+      0x07090a,
+    metalness:
+      .79,
+    roughness:
+      .23
+  });
+
+
+const magazineMaterial =
+  new THREE.MeshPhysicalMaterial({
+    color:
+      0x171a1b,
+    metalness:
+      .40,
+    roughness:
+      .38
+  });
+
+
+const brassMaterial =
+  new THREE.MeshStandardMaterial({
+    color:
+      0xcb9a3a,
+    metalness:
+      .85,
+    roughness:
+      .27
+  });
+
+
+const skinMaterial =
+  new THREE.MeshPhysicalMaterial({
+    color:
+      0xc98a66,
+    roughness:
+      .76,
+    clearcoat:
+      .025,
+    clearcoatRoughness:
+      .70
+  });
+
+
+/* =========================================================
+   PROFILE HELPER
+========================================================= */
+
+function extrudeProfile(
+  shape,
+  width,
+  material,
+  bevel
+) {
+
+  const geometry =
+    new THREE.ExtrudeGeometry(
+      shape,
+      {
+        depth:
+          width,
+        bevelEnabled:
+          true,
+        bevelSegments:
+          10,
+        bevelSize:
+          bevel,
+        bevelThickness:
+          bevel,
+        curveSegments:
+          36
+      }
+    );
+
+  geometry.center();
+
+  geometry.rotateY(
+    Math.PI / 2
+  );
+
+  geometry.computeVertexNormals();
+
+  const mesh =
+    new THREE.Mesh(
+      geometry,
+      material
+    );
+
+  mesh.castShadow =
+    true;
+
+  return mesh;
+}
+
+
+/* =========================================================
+   WEAPON
+========================================================= */
+
+const weaponRig =
+  new THREE.Group();
+
+
+camera.add(
+  weaponRig
+);
+
+
+const gun =
+  new THREE.Group();
+
+
+weaponRig.add(
+  gun
+);
+
+
+/* =========================================================
+   SLIDE
+========================================================= */
+
+function makeSlideShape() {
+
+  const shape =
+    new THREE.Shape();
+
+  shape.moveTo(
+    -.275,
+    -.055
+  );
+
+  shape.quadraticCurveTo(
+    -.270,
+    -.069,
+    -.245,
+    -.073
+  );
+
+  shape.lineTo(
+    .245,
+    -.073
+  );
+
+  shape.quadraticCurveTo(
+    .275,
+    -.067,
+    .280,
+    -.040
+  );
+
+  shape.lineTo(
+    .267,
+    .050
+  );
+
+  shape.quadraticCurveTo(
+    .260,
+    .072,
+    .228,
+    .075
+  );
+
+  shape.lineTo(
+    -.235,
+    .075
+  );
+
+  shape.quadraticCurveTo(
+    -.264,
+    .071,
+    -.271,
+    .047
+  );
+
+  shape.closePath();
+
+  return shape;
+}
+
+
+const slideGroup =
+  new THREE.Group();
+
+
+gun.add(
+  slideGroup
+);
+
+
+const slide =
+  extrudeProfile(
+    makeSlideShape(),
+    .067,
+    slideMaterial,
+    .006
+  );
+
+
+slide.position.set(
+  0,
+  .095,
+  -.185
+);
+
+
+slideGroup.add(
+  slide
+);
+
+
+/* =========================================================
+   FRAME / GRIP
+========================================================= */
+
+function makeFrameShape() {
+
+  const shape =
+    new THREE.Shape();
+
+  shape.moveTo(
+    -.215,
+    .030
+  );
+
+  shape.lineTo(
+    .225,
+    .030
+  );
+
+  shape.quadraticCurveTo(
+    .248,
+    .025,
+    .248,
+    .002
+  );
+
+  shape.lineTo(
+    .232,
+    -.036
+  );
+
+  shape.lineTo(
+    .125,
+    -.044
+  );
+
+  shape.lineTo(
+    .020,
+    -.100
+  );
+
+  shape.lineTo(
+    -.038,
+    -.326
+  );
+
+  shape.quadraticCurveTo(
+    -.046,
+    -.349,
+    -.070,
+    -.352
+  );
+
+  shape.lineTo(
+    -.132,
+    -.352
+  );
+
+  shape.quadraticCurveTo(
+    -.154,
+    -.345,
+    -.157,
+    -.320
+  );
+
+  shape.quadraticCurveTo(
+    -.172,
+    -.210,
+    -.159,
+    -.104
+  );
+
+  shape.quadraticCurveTo(
+    -.154,
+    -.043,
+    -.180,
+    .030
+  );
+
+  shape.closePath();
+
+  return shape;
+}
+
+
+const frame =
+  extrudeProfile(
+    makeFrameShape(),
+    .063,
+    polymerMaterial,
+    .006
+  );
+
+
+frame.position.set(
+  0,
+  -.055,
+  -.005
+);
+
+
+gun.add(frame);
+
+
+/* =========================================================
+   BARREL / MUZZLE
+========================================================= */
+
+const barrel =
+  new THREE.Mesh(
+    new THREE.CylinderGeometry(
+      .036,
+      .036,
+      .515,
+      48
+    ),
+    darkMetal
+  );
+
+
+barrel.rotation.x =
+  Math.PI / 2;
+
+
+barrel.position.set(
+  0,
+  .094,
+  -.27
+);
+
+
+gun.add(barrel);
+
+
+const muzzle =
+  new THREE.Mesh(
+    new THREE.TorusGeometry(
+      .038,
+      .006,
+      18,
+      48
+    ),
+    darkMetal
+  );
+
+
+muzzle.position.set(
+  0,
+  .094,
+  -.548
+);
+
+
+gun.add(muzzle);
+
+
+const bore =
+  new THREE.Mesh(
+    new THREE.CircleGeometry(
+      .029,
+      48
+    ),
+    new THREE.MeshBasicMaterial({
+      color:
+        0x000000
+    })
+  );
+
+
+bore.position.set(
+  0,
+  .094,
+  -.557
+);
+
+
+gun.add(bore);
+
+
+/* =========================================================
+   SLIDE DETAILS
+========================================================= */
+
+const ejectionPort =
+  new THREE.Mesh(
+    new THREE.BoxGeometry(
+      .060,
+      .006,
+      .112
+    ),
+    new THREE.MeshStandardMaterial({
+      color:
+        0x030404,
+      roughness:
+        .72
+    })
+  );
+
+
+ejectionPort.position.set(
+  .034,
+  .168,
+  -.12
+);
+
+
+slideGroup.add(
+  ejectionPort
+);
+
+
+for (
+  let i = 0;
+  i < 7;
+  i++
+) {
+
+  const serration =
+    new THREE.Mesh(
+      new THREE.BoxGeometry(
+        .0028,
+        .060,
+        .009
+      ),
+      darkMetal
+    );
+
+  serration.position.set(
+    .034,
+    .101,
+    .024 + i * .019
+  );
+
+  slideGroup.add(
+    serration
+  );
+}
+
+
+/* =========================================================
+   SIGHTS
+========================================================= */
+
+const frontSight =
+  new THREE.Mesh(
+    new THREE.BoxGeometry(
+      .022,
+      .037,
+      .040
+    ),
+    darkMetal
+  );
+
+
+frontSight.position.set(
+  0,
+  .189,
+  -.455
+);
+
+
+slideGroup.add(
+  frontSight
+);
+
+
+function addRearSight(x) {
+
+  const sight =
+    new THREE.Mesh(
+      new THREE.BoxGeometry(
+        .024,
+        .039,
+        .034
+      ),
+      darkMetal
+    );
+
+  sight.position.set(
+    x,
+    .191,
+    .043
+  );
+
+  slideGroup.add(
+    sight
+  );
+}
+
+
+addRearSight(-.037);
+addRearSight(.037);
+
+
+/* =========================================================
+   TRIGGER GUARD
+========================================================= */
+
+const guardFrameConnector =
+  new THREE.Mesh(
+    new THREE.BoxGeometry(
+      .064,
+      .046,
+      .105
+    ),
+    polymerMaterial
+  );
+
+
+guardFrameConnector.position.set(
+  0,
+  -.010,
+  -.145
+);
+
+
+guardFrameConnector.rotation.x =
+  -.08;
+
+
+gun.add(
+  guardFrameConnector
+);
+
+
+class TriggerGuardCurve
+extends THREE.Curve {
+
+  getPoint(
+    t,
+    target =
+      new THREE.Vector3()
+  ) {
+
+    const points = [
+
+      new THREE.Vector3(
+        0,.018,-.176
+      ),
+
+      new THREE.Vector3(
+        0,-.006,-.188
+      ),
+
+      new THREE.Vector3(
+        0,-.038,-.171
+      ),
+
+      new THREE.Vector3(
+        0,-.062,-.132
+      ),
+
+      new THREE.Vector3(
+        0,-.071,-.090
+      ),
+
+      new THREE.Vector3(
+        0,-.061,-.052
+      ),
+
+      new THREE.Vector3(
+        0,-.039,-.022
+      ),
+
+      new THREE.Vector3(
+        0,-.008,.006
+      )
+
+    ];
+
+    return new THREE
+      .CatmullRomCurve3(
+        points
+      )
+      .getPoint(
+        t,
+        target
+      );
+  }
+}
+
+
+const triggerGuard =
+  new THREE.Mesh(
+    new THREE.TubeGeometry(
+      new TriggerGuardCurve(),
+      96,
+      .011,
+      20,
+      false
+    ),
+    polymerMaterial
+  );
+
+
+gun.add(triggerGuard);
+
+
+/* =========================================================
+   TRIGGER
+========================================================= */
+
+const triggerPivot =
+  new THREE.Group();
+
+
+triggerPivot.position.set(
+  0,
+  .016,
+  -.087
+);
+
+
+gun.add(
+  triggerPivot
+);
+
+
+const trigger =
+  new THREE.Mesh(
+    new THREE.CapsuleGeometry(
+      .0068,
+      .046,
+      10,
+      18
+    ),
+    darkMetal
+  );
+
+
+trigger.position.y =
+  -.024;
+
+
+trigger.rotation.x =
+  -.18;
+
+
+triggerPivot.add(
+  trigger
+);
+
+
+/* =========================================================
+   SHOOTING HAND
+========================================================= */
+
+const shootingHand =
+  new THREE.Mesh(
+    new THREE.SphereGeometry(
+      1,
+      64,
+      48
+    ),
+    skinMaterial
+  );
+
+
+shootingHand.scale.set(
+  .110,
+  .178,
+  .142
+);
+
+
+shootingHand.position.set(
+  0,
+  -.118,
+  .118
+);
+
+
+shootingHand.rotation.x =
+  .018;
+
+
+gun.add(
+  shootingHand
+);
+
+
+/* =========================================================
+   MAGAZINES
+========================================================= */
+
+const MAG_HEIGHT =
+  .20;
+
+
+const MAG_START_Y =
+  -.67;
+
+
+const MAG_ALIGN_Y =
+  -.48;
+
+
+const MAG_FULLY_INSERTED_Y =
+  -.20;
+
+
+const MAG_Z =
+  .020;
+
+
+function createMagazine() {
+
+  const group =
+    new THREE.Group();
+
+
+  const body =
+    new THREE.Mesh(
+      new THREE.BoxGeometry(
+        .038,
+        MAG_HEIGHT,
+        .046
+      ),
+      magazineMaterial
+    );
+
+
+  group.add(body);
+
+
+  const base =
+    new THREE.Mesh(
+      new THREE.BoxGeometry(
+        .047,
+        .010,
+        .055
+      ),
+      magazineMaterial
+    );
+
+
+  base.position.y =
+    -MAG_HEIGHT / 2 - .004;
+
+
+  group.add(base);
+
+
+  return group;
+}
+
+
+const oldMagazine =
+  createMagazine();
+
+
+oldMagazine.visible =
+  false;
+
+
+oldMagazine.position.set(
+  0,
+  MAG_FULLY_INSERTED_Y,
+  MAG_Z
+);
+
+
+gun.add(
+  oldMagazine
+);
+
+
+const freshMagazine =
+  createMagazine();
+
+
+freshMagazine.visible =
+  false;
+
+
+freshMagazine.position.set(
+  0,
+  MAG_START_Y,
+  MAG_Z
+);
+
+
+gun.add(
+  freshMagazine
+);
+
+
+/* =========================================================
+   RELOAD HAND
+========================================================= */
+
+const leftHand =
+  new THREE.Mesh(
+    new THREE.SphereGeometry(
+      1,
+      56,
+      42
+    ),
+    skinMaterial
+  );
+
+
+leftHand.scale.set(
+  .090,
+  .130,
+  .080
+);
+
+
+leftHand.visible =
+  false;
+
+
+gun.add(
+  leftHand
+);
+
+
+/* =========================================================
+   MUZZLE / EJECTION ANCHORS
+========================================================= */
+
+const muzzleAnchor =
+  new THREE.Object3D();
+
+
+muzzleAnchor.position.set(
+  0,
+  .094,
+  -.595
+);
+
+
+gun.add(
+  muzzleAnchor
+);
+
+
+const ejectAnchor =
+  new THREE.Object3D();
+
+
+ejectAnchor.position.set(
+  .080,
+  .15,
+  -.10
+);
+
+
+gun.add(
+  ejectAnchor
+);
+
+
+/* =========================================================
+   MUZZLE FLASH
+========================================================= */
+
+function makeFlashTexture() {
+
+  const canvas =
+    document.createElement(
+      "canvas"
+    );
+
+
+  canvas.width = 128;
+  canvas.height = 128;
+
+
+  const ctx =
+    canvas.getContext("2d");
+
+
+  const gradient =
+    ctx.createRadialGradient(
+      64,64,2,
+      64,64,61
+    );
+
+
+  gradient.addColorStop(
+    0,
+    "rgba(255,255,255,1)"
+  );
+
+
+  gradient.addColorStop(
+    .15,
+    "rgba(255,248,175,1)"
+  );
+
+
+  gradient.addColorStop(
+    .38,
+    "rgba(255,164,28,.9)"
+  );
+
+
+  gradient.addColorStop(
+    .72,
+    "rgba(255,65,0,.30)"
+  );
+
+
+  gradient.addColorStop(
+    1,
+    "rgba(255,55,0,0)"
+  );
+
+
+  ctx.fillStyle =
+    gradient;
+
+
+  ctx.fillRect(
+    0,
+    0,
+    128,
+    128
+  );
+
+
+  return new THREE.CanvasTexture(
+    canvas
+  );
+}
+
+
+const flash =
+  new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map:
+        makeFlashTexture(),
+      transparent:
+        true,
+      blending:
+        THREE.AdditiveBlending,
+      depthWrite:
+        false
+    })
+  );
+
+
+flash.scale.set(
+  .28,
+  .28,
+  .28
+);
+
+
+flash.visible =
+  false;
+
+
+muzzleAnchor.add(
+  flash
+);
+
+
+const muzzleLight =
+  new THREE.PointLight(
+    0xffa229,
+    0,
+    2.6
+  );
+
+
+muzzleAnchor.add(
+  muzzleLight
+);
+
+
+/* =========================================================
+   PLAYER
+========================================================= */
+
+const player = {
+  x: 0,
+  z: 1,
+  height: 1.68,
+  ammo: 12,
+  score: 0
+};
+
+
+let yaw = 0;
+let pitch = 0;
+
+let recoilPitch = 0;
+let recoilYaw = 0;
+
+let ads = false;
+
+let currentFov = 71;
+let targetFov = 71;
+
+const keys = {};
+
+const mouseSensitivity =
+  .00235;
+
+let triggerPull = 0;
+
+
+/* =========================================================
+   POINTER LOCK CAMERA
+
+   THIS IS THE IMPORTANT CAMERA FIX.
+
+   The mouse cursor is no longer tracked by its position
+   on the physical screen.
+
+   Once locked, movementX and movementY tell us how far the
+   mouse moved, even if you rotate continuously forever.
+========================================================= */
+
+let pointerLocked =
+  false;
+
+
+function requestGamePointerLock() {
+
+  ensureAudio();
+
+
+  if (
+    document.pointerLockElement ===
+    renderer.domElement
+  ) {
+    return;
+  }
+
+
+  if (
+    renderer.domElement.requestPointerLock
+  ) {
+
+    renderer.domElement.requestPointerLock();
+
+  }
+
+}
+
+
+/*
+  Clicking the game while NOT locked captures the mouse.
+
+  Clicking while ALREADY locked fires the pistol.
+*/
+
+renderer.domElement.addEventListener(
+  "mousedown",
+  e => {
+
+    if (
+      e.button !==
+      0
+    ) {
+      return;
+    }
+
+
+    ensureAudio();
+
+
+    if (
+      document.pointerLockElement !==
+      renderer.domElement
+    ) {
+
+      requestGamePointerLock();
+
+      return;
+
+    }
+
+
+    fire();
+
+  }
+);
+
+
+/*
+  Browser fires this whenever mouse capture begins or ends.
+
+  Pressing ESC automatically releases pointer lock.
+*/
+
+document.addEventListener(
+  "pointerlockchange",
+  () => {
+
+    pointerLocked =
+      document.pointerLockElement ===
+      renderer.domElement;
+
+
+    document.body.classList.toggle(
+      "controlled",
+      pointerLocked
+    );
+
+
+    /*
+      Prevent an ADS state from remaining stuck if
+      ESC was pressed while SHIFT was being held.
+    */
+
+    if (
+      !pointerLocked
+    ) {
+
+      setADS(false);
+
+    }
+
+  }
+);
+
+
+/*
+  If pointer lock fails, make sure UI doesn't falsely
+  claim the mouse is captured.
+*/
+
+document.addEventListener(
+  "pointerlockerror",
+  () => {
+
+    pointerLocked =
+      false;
+
+
+    document.body.classList.remove(
+      "controlled"
+    );
+
+
+    showMessage(
+      "CLICK AGAIN TO LOCK MOUSE"
+    );
+
+  }
+);
+
+
+/*
+  THIS replaces the old cursor-position camera system.
+
+  movementX / movementY contain raw relative mouse motion.
+
+  There is NO cursor position and therefore NO screen edge.
+*/
+
+document.addEventListener(
+  "mousemove",
+  e => {
+
+    if (
+      !pointerLocked
+    ) {
+      return;
+    }
+
+
+    yaw -=
+      e.movementX *
+      mouseSensitivity;
+
+
+    pitch -=
+      e.movementY *
+      mouseSensitivity;
+
+
+    /*
+      Left/right remains unlimited.
+
+      yaw is NEVER clamped.
+
+      You can therefore spin around continuously.
+    */
+
+
+    /*
+      Vertical view stops just short of mathematically
+      flipping the camera upside-down.
+
+      This still lets you look almost perfectly straight
+      up and straight down.
+    */
+
+    pitch =
+      THREE.MathUtils.clamp(
+        pitch,
+        -Math.PI / 2 + .015,
+        Math.PI / 2 - .015
+      );
+
+  }
+);
+
+
+/* =========================================================
+   KEYBOARD
+========================================================= */
+
+document.addEventListener(
+  "keydown",
+  e => {
+
+    ensureAudio();
+
+
+    keys[e.code] =
+      true;
+
+
+    if (
+      e.code === "ShiftLeft" ||
+      e.code === "ShiftRight"
+    ) {
+
+      e.preventDefault();
+
+
+      setADS(
+        true
+      );
+
+    }
+
+
+    if (
+      e.code ===
+      "KeyR"
+    ) {
+
+      e.preventDefault();
+
+
+      startReload();
+
+    }
+
+
+    /*
+      We intentionally DO NOT manually handle Escape.
+
+      The browser's Pointer Lock API handles ESC itself,
+      which releases the mouse correctly and safely.
+    */
+
+  }
+);
+
+
+document.addEventListener(
+  "keyup",
+  e => {
+
+    keys[e.code] =
+      false;
+
+
+    if (
+      e.code === "ShiftLeft" ||
+      e.code === "ShiftRight"
+    ) {
+
+      setADS(
+        false
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   ADS
+========================================================= */
+
+function setADS(value) {
+
+  if (
+    reloading
+  ) {
+    value =
+      false;
+  }
+
+
+  ads =
+    value;
+
+
+  targetFov =
+    ads
+      ? 45
+      : 71;
+
+
+  document.body.classList.toggle(
+    "ads",
+    ads
+  );
+
+
+  if (
+    !reloading
+  ) {
+
+    modeText.textContent =
+      ads
+        ? "ADS • TIGHT SPREAD"
+        : "HIP FIRE";
+
+  }
+
+}
+
+
+/* =========================================================
+   CAMERA
+========================================================= */
+
+function updateCamera() {
+
+  camera.position.set(
+    player.x,
+    player.height,
+    player.z
+  );
+
+
+  currentFov =
+    THREE.MathUtils.lerp(
+      currentFov,
+      targetFov,
+      .18
+    );
+
+
+  camera.fov =
+    currentFov;
+
+
+  camera.aspect =
+    innerWidth /
+    innerHeight;
+
+
+  camera.updateProjectionMatrix();
+
+
+  camera.rotation.y =
+    yaw +
+    recoilYaw;
+
+
+  camera.rotation.x =
+    pitch +
+    recoilPitch;
+
+}
+
+
+/* =========================================================
+   WEAPON POSITION
+========================================================= */
+
+const hipPosition =
+  new THREE.Vector3(
+    .225,
+    -.245,
+    -1.12
+  );
+
+
+const adsPosition =
+  new THREE.Vector3(
+    0,
+    -.155,
+    -.90
+  );
+
+
+const reloadPosition =
+  new THREE.Vector3(
+    .27,
+    -.225,
+    -1.03
+  );
+
+
+let weaponKickBack = 0;
+let weaponKickUp = 0;
+let reloadShake = 0;
+
+
+function updateWeapon() {
+
+  const desiredPosition =
+    reloading
+      ? reloadPosition
+      : ads
+        ? adsPosition
+        : hipPosition;
+
+
+  weaponRig.position.lerp(
+    desiredPosition,
+    .22
+  );
+
+
+  const scale =
+    reloading
+      ? .51
+      : ads
+        ? .64
+        : .49;
+
+
+  weaponRig.scale.lerp(
+    new THREE.Vector3(
+      scale,
+      scale,
+      scale
+    ),
+    .18
+  );
+
+
+  const desiredRoll =
+    reloading
+      ? -.38
+      : ads
+        ? 0
+        : -.018;
+
+
+  weaponRig.rotation.z =
+    THREE.MathUtils.lerp(
+      weaponRig.rotation.z,
+      desiredRoll +
+      reloadShake,
+      .24
+    );
+
+
+  const desiredYaw =
+    reloading
+      ? .18
+      : ads
+        ? 0
+        : -.035;
+
+
+  weaponRig.rotation.y =
+    THREE.MathUtils.lerp(
+      weaponRig.rotation.y,
+      desiredYaw,
+      .22
+    );
+
+
+  if (
+    !reloading
+  ) {
+
+    gun.position.z =
+      weaponKickBack;
+
+
+    gun.rotation.x =
+      weaponKickUp;
+
+  }
+
+}
+
+
+/* =========================================================
+   TRIGGER ANIMATION
+========================================================= */
+
+function updateTrigger(delta) {
+
+  triggerPull =
+    THREE.MathUtils.lerp(
+      triggerPull,
+      0,
+      1 -
+      Math.exp(
+        -18 * delta
+      )
+    );
+
+
+  triggerPivot.rotation.x =
+    -triggerPull *
+    .38;
+
+}
+
+
+/* =========================================================
+   MOVEMENT
+========================================================= */
+
+let joystickX = 0;
+let joystickY = 0;
+
+
+function updateMovement(delta) {
+
+  let forward = 0;
+  let sideways = 0;
+
+
+  if (
+    keys["KeyW"]
+  ) {
+    forward++;
+  }
+
+
+  if (
+    keys["KeyS"]
+  ) {
+    forward--;
+  }
+
+
+  if (
+    keys["KeyA"]
+  ) {
+    sideways--;
+  }
+
+
+  if (
+    keys["KeyD"]
+  ) {
+    sideways++;
+  }
+
+
+  forward +=
+    -joystickY;
+
+
+  sideways +=
+    joystickX;
+
+
+  const length =
+    Math.hypot(
+      forward,
+      sideways
+    );
+
+
+  if (
+    length > 1
+  ) {
+
+    forward /=
+      length;
+
+
+    sideways /=
+      length;
+
+  }
+
+
+  const speed =
+    reloading
+      ? 1.8
+      : ads
+        ? 2.3
+        : 3.8;
+
+
+  const forwardX =
+    -Math.sin(yaw);
+
+
+  const forwardZ =
+    -Math.cos(yaw);
+
+
+  const rightX =
+    Math.cos(yaw);
+
+
+  const rightZ =
+    -Math.sin(yaw);
+
+
+  player.x +=
+    (
+      forwardX * forward +
+      rightX * sideways
+    ) *
+    speed *
+    delta;
+
+
+  player.z +=
+    (
+      forwardZ * forward +
+      rightZ * sideways
+    ) *
+    speed *
+    delta;
+
+}
+
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+let messageTimer = null;
+
+
+function showMessage(text) {
+
+  bigMessage.textContent =
+    text;
+
+
+  bigMessage.classList.add(
+    "show"
+  );
+
+
+  clearTimeout(
+    messageTimer
+  );
+
+
+  messageTimer =
+    setTimeout(
+      () => {
+
+        bigMessage.classList.remove(
+          "show"
+        );
+
+      },
+      950
+    );
+
+}
+
+
+/* =========================================================
+   SHOOTING
+========================================================= */
+
+const raycaster =
+  new THREE.Raycaster();
+
+
+const shotPoint =
+  new THREE.Vector2();
+
+
+let slideKick = 0;
+let slideLocked = false;
+let flashTimer = 0;
+
+
+const bulletHoles = [];
+
+
+const targetHoleMaterial =
+  new THREE.MeshBasicMaterial({
+    color:
+      0x17100c,
+    side:
+      THREE.DoubleSide,
+    depthWrite:
+      false,
+    polygonOffset:
+      true,
+    polygonOffsetFactor:
+      -8
+  });
+
+
+const wallHoleMaterial =
+  new THREE.MeshBasicMaterial({
+    color:
+      0x201713,
+    side:
+      THREE.DoubleSide,
+    depthWrite:
+      false,
+    polygonOffset:
+      true,
+    polygonOffsetFactor:
+      -8
+  });
+
+
+function createBulletHole(hit) {
+
+  const onTarget =
+    target.children.includes(
+      hit.object
+    );
+
+
+  const hole =
+    new THREE.Mesh(
+      new THREE.CircleGeometry(
+        onTarget
+          ? .032
+          : .027,
+        24
+      ),
+      onTarget
+        ? targetHoleMaterial
+        : wallHoleMaterial
+    );
+
+
+  hole.position.copy(
+    hit.point
+  );
+
+
+  let normal =
+    new THREE.Vector3(
+      0,
+      0,
+      1
+    );
+
+
+  if (
+    hit.face
+  ) {
+
+    normal =
+      hit.face.normal.clone();
+
+
+    normal.transformDirection(
+      hit.object.matrixWorld
+    );
+
+  }
+
+
+  const q =
+    new THREE.Quaternion();
+
+
+  q.setFromUnitVectors(
+    new THREE.Vector3(
+      0,
+      0,
+      1
+    ),
+    normal
+  );
+
+
+  hole.quaternion.copy(q);
+
+
+  hole.position.addScaledVector(
+    normal,
+    .007
+  );
+
+
+  hole.renderOrder = 50;
+
+
+  scene.add(hole);
+
+
+  bulletHoles.push(hole);
+
+
+  if (
+    bulletHoles.length > 200
+  ) {
+
+    const old =
+      bulletHoles.shift();
+
+
+    scene.remove(old);
+
+  }
+
+}
+
+
+function fire() {
+
+  if (
+    reloading
+  ) {
+    return;
+  }
+
+
+  triggerPull = 1;
+
+
+  if (
+    player.ammo <= 0
+  ) {
+
+    soundEmpty();
+
+
+    showMessage(
+      "MAG EMPTY • RELOAD REQUIRED"
+    );
+
+
+    return;
+
+  }
+
+
+  soundGunshot();
+
+
+  player.ammo--;
+
+
+  ammoText.textContent =
+    player.ammo;
+
+
+  slideKick = .097;
+
+
+  if (
+    ads
+  ) {
+
+    weaponKickBack = .031;
+    weaponKickUp = .031;
+
+
+    recoilPitch +=
+      .008 +
+      Math.random() *
+      .003;
+
+
+    recoilYaw +=
+      (
+        Math.random() -
+        .5
+      ) *
+      .003;
+
+  }
+
+  else {
+
+    weaponKickBack = .052;
+    weaponKickUp = .052;
+
+
+    recoilPitch +=
+      .018 +
+      Math.random() *
+      .005;
+
+
+    recoilYaw +=
+      (
+        Math.random() -
+        .5
+      ) *
+      .007;
+
+  }
+
+
+  flashTimer = .043;
+
+
+  flash.visible = true;
+
+
+  muzzleLight.intensity = 6;
+
+
+  ejectCasing();
+
+
+  const spread =
+    ads
+      ? 4
+      : 34;
+
+
+  const angle =
+    Math.random() *
+    Math.PI *
+    2;
+
+
+  const radius =
+    Math.sqrt(
+      Math.random()
+    ) *
+    spread;
+
+
+  shotPoint.set(
+    Math.cos(angle) *
+    radius /
+    innerWidth *
+    2,
+
+    -Math.sin(angle) *
+    radius /
+    innerHeight *
+    2
+  );
+
+
+  raycaster.setFromCamera(
+    shotPoint,
+    camera
+  );
+
+
+  const hits =
+    raycaster.intersectObjects(
+      [
+        ...target.children,
+        wall,
+        ground
+      ],
+      false
+    );
+
+
+  if (
+    hits.length
+  ) {
+
+    const hit =
+      hits[0];
+
+
+    if (
+      hit.object !== ground
+    ) {
+
+      createBulletHole(hit);
+
+    }
+
+
+    if (
+      target.children.includes(
+        hit.object
+      )
+    ) {
+
+      scoreHit(
+        hit.point
+      );
+
+    }
+
+  }
+
+
+  if (
+    player.ammo === 0
+  ) {
+
+    slideLocked = true;
+
+  }
+
+}
+
+
+/* =========================================================
+   SCORE
+========================================================= */
+
+function scoreHit(point) {
+
+  const distance =
+    Math.hypot(
+      point.x -
+      target.position.x,
+      point.y -
+      target.position.y
+    );
+
+
+  let points;
+
+
+  if (distance <= .19) points = 10;
+  else if (distance <= .40) points = 8;
+  else if (distance <= .63) points = 6;
+  else if (distance <= .86) points = 4;
+  else if (distance <= 1.08) points = 2;
+  else points = 1;
+
+
+  player.score +=
+    points;
+
+
+  scoreText.textContent =
+    player.score;
+
+
+  hitMarker.style.display =
+    "block";
+
+
+  setTimeout(
+    () => {
+
+      hitMarker.style.display =
+        "none";
+
+    },
+    90
+  );
+
+}
+
+
+/* =========================================================
+   CASINGS
+========================================================= */
+
+const casings = [];
+
+
+function ejectCasing() {
+
+  const casing =
+    new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        .009,
+        .009,
+        .035,
+        18
+      ),
+      brassMaterial
+    );
+
+
+  casing.rotation.x =
+    Math.PI / 2;
+
+
+  const position =
+    new THREE.Vector3();
+
+
+  ejectAnchor.getWorldPosition(
+    position
+  );
+
+
+  casing.position.copy(
+    position
+  );
+
+
+  scene.add(casing);
+
+
+  const velocity =
+    new THREE.Vector3(
+      .80 +
+      Math.random() *
+      .28,
+      1.08 +
+      Math.random() *
+      .34,
+      .10 +
+      Math.random() *
+      .22
+    );
+
+
+  velocity.applyQuaternion(
+    camera.quaternion
+  );
+
+
+  casings.push({
+    mesh:
+      casing,
+    velocity,
+    spin:
+      new THREE.Vector3(
+        14,
+        12,
+        15
+      ),
+    life:
+      1.7
+  });
+
+}
+
+
+/* =========================================================
+   THROWN MAGAZINES
+========================================================= */
+
+const thrownMagazines = [];
+
+
+function throwMagazineFrom(
+  sourceMagazine
+) {
+
+  const thrown =
+    createMagazine();
+
+
+  const worldPosition =
+    new THREE.Vector3();
+
+
+  sourceMagazine.getWorldPosition(
+    worldPosition
+  );
+
+
+  const worldQuaternion =
+    new THREE.Quaternion();
+
+
+  sourceMagazine.getWorldQuaternion(
+    worldQuaternion
+  );
+
+
+  thrown.position.copy(
+    worldPosition
+  );
+
+
+  thrown.quaternion.copy(
+    worldQuaternion
+  );
+
+
+  scene.add(thrown);
+
+
+  const velocity =
+    new THREE.Vector3(
+      -5.8,
+      2.4,
+      -.7
+    );
+
+
+  velocity.applyQuaternion(
+    camera.quaternion
+  );
+
+
+  thrownMagazines.push({
+    mesh:
+      thrown,
+    velocity,
+    spin:
+      new THREE.Vector3(
+        18,
+        24,
+        19
+      ),
+    life:
+      2.4
+  });
+
+}
+
+
+/* =========================================================
+   OBJECT PHYSICS
+========================================================= */
+
+function updateLooseObjects(delta) {
+
+  for (
+    let i =
+      casings.length - 1;
+    i >= 0;
+    i--
+  ) {
+
+    const casing =
+      casings[i];
+
+
+    casing.velocity.y -=
+      5.8 * delta;
+
+
+    casing.mesh.position.addScaledVector(
+      casing.velocity,
+      delta
+    );
+
+
+    casing.mesh.rotation.x +=
+      casing.spin.x *
+      delta;
+
+
+    casing.mesh.rotation.y +=
+      casing.spin.y *
+      delta;
+
+
+    casing.mesh.rotation.z +=
+      casing.spin.z *
+      delta;
+
+
+    casing.life -= delta;
+
+
+    if (
+      casing.life <= 0
+    ) {
+
+      scene.remove(
+        casing.mesh
+      );
+
+
+      casings.splice(
+        i,
+        1
+      );
+
+    }
+
+  }
+
+
+  for (
+    let i =
+      thrownMagazines.length - 1;
+    i >= 0;
+    i--
+  ) {
+
+    const mag =
+      thrownMagazines[i];
+
+
+    mag.velocity.y -=
+      6.5 * delta;
+
+
+    mag.mesh.position.addScaledVector(
+      mag.velocity,
+      delta
+    );
+
+
+    mag.mesh.rotation.x +=
+      mag.spin.x *
+      delta;
+
+
+    mag.mesh.rotation.y +=
+      mag.spin.y *
+      delta;
+
+
+    mag.mesh.rotation.z +=
+      mag.spin.z *
+      delta;
+
+
+    mag.life -= delta;
+
+
+    if (
+      mag.life <= 0
+    ) {
+
+      scene.remove(
+        mag.mesh
+      );
+
+
+      thrownMagazines.splice(
+        i,
+        1
+      );
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   RELOAD
+========================================================= */
+
+let reloading = false;
+let reloadStart = 0;
+
+
+const RELOAD_LENGTH =
+  3.55;
+
+
+let magOutSoundPlayed = false;
+let oldMagThrown = false;
+let magInSoundPlayed = false;
+let slidePullPlayed = false;
+let slideReleasePlayed = false;
+
+
+const handHidden =
+  new THREE.Vector3(
+    -.34,
+    -.82,
+    .08
+  );
+
+
+const handOldMag =
+  new THREE.Vector3(
+    -.10,
+    -.37,
+    .06
+  );
+
+
+const handRip =
+  new THREE.Vector3(
+    -.14,
+    -.58,
+    .05
+  );
+
+
+const handThrow =
+  new THREE.Vector3(
+    -.50,
+    -.50,
+    .04
+  );
+
+
+const handFresh =
+  new THREE.Vector3(
+    -.15,
+    -.64,
+    .05
+  );
+
+
+const handAlign =
+  new THREE.Vector3(
+    -.08,
+    -.48,
+    .03
+  );
+
+
+const handSeat =
+  new THREE.Vector3(
+    -.05,
+    -.24,
+    .03
+  );
+
+
+const handSlideFront =
+  new THREE.Vector3(
+    -.07,
+    .11,
+    -.22
+  );
+
+
+const handSlideRear =
+  new THREE.Vector3(
+    -.16,
+    .09,
+    .02
+  );
+
+
+function clamp01(value) {
+
+  return THREE.MathUtils.clamp(
+    value,
+    0,
+    1
+  );
+
+}
+
+
+function smooth(value) {
+
+  const t =
+    clamp01(value);
+
+
+  return (
+    t *
+    t *
+    (
+      3 -
+      2 *
+      t
+    )
+  );
+
+}
+
+
+function snap(value) {
+
+  const t =
+    clamp01(value);
+
+
+  return (
+    1 -
+    Math.pow(
+      1 - t,
+      5
+    )
+  );
+
+}
+
+
+function moveBetween(
+  object,
+  start,
+  end,
+  amount
+) {
+
+  object.position.lerpVectors(
+    start,
+    end,
+    amount
+  );
+
+}
+
+
+function startReload() {
+
+  if (
+    reloading ||
+    player.ammo === 12
+  ) {
+    return;
+  }
+
+
+  setADS(false);
+
+
+  reloading = true;
+
+
+  reloadStart =
+    performance.now() /
+    1000;
+
+
+  magOutSoundPlayed = false;
+  oldMagThrown = false;
+  magInSoundPlayed = false;
+  slidePullPlayed = false;
+  slideReleasePlayed = false;
+
+
+  modeText.textContent =
+    "RELOADING";
+
+
+  oldMagazine.visible =
+    true;
+
+
+  oldMagazine.position.set(
+    0,
+    MAG_FULLY_INSERTED_Y,
+    MAG_Z
+  );
+
+
+  freshMagazine.visible =
+    false;
+
+
+  freshMagazine.position.set(
+    0,
+    MAG_START_Y,
+    MAG_Z
+  );
+
+
+  leftHand.visible =
+    true;
+
+
+  leftHand.position.copy(
+    handHidden
+  );
+
+
+  leftHand.rotation.set(
+    0,
+    0,
+    0
+  );
+
+}
+
+
+function updateReload() {
+
+  if (
+    !reloading
+  ) {
+
+    reloadShake =
+      THREE.MathUtils.lerp(
+        reloadShake,
+        0,
+        .24
+      );
+
+
+    return;
+
+  }
+
+
+  const t =
+    performance.now() /
+    1000 -
+    reloadStart;
+
+
+  reloadShake = 0;
+
+
+  if (
+    t < .32
+  ) {
+
+    const p =
+      snap(
+        t / .32
+      );
+
+
+    moveBetween(
+      leftHand,
+      handHidden,
+      handOldMag,
+      p
+    );
+
+  }
+
+
+  else if (
+    t < .68
+  ) {
+
+    const p =
+      snap(
+        (
+          t - .32
+        ) /
+        .36
+      );
+
+
+    if (
+      !magOutSoundPlayed
+    ) {
+
+      magOutSoundPlayed =
+        true;
+
+
+      soundMagOut();
+
+    }
+
+
+    moveBetween(
+      leftHand,
+      handOldMag,
+      handRip,
+      p
+    );
+
+
+    oldMagazine.position.y =
+      THREE.MathUtils.lerp(
+        MAG_FULLY_INSERTED_Y,
+        -.49,
+        p
+      );
+
+
+    reloadShake =
+      Math.sin(
+        p *
+        Math.PI *
+        10
+      ) *
+      .025 *
+      (
+        1 - p
+      );
+
+  }
+
+
+  else if (
+    t < .88
+  ) {
+
+    const p =
+      snap(
+        (
+          t - .68
+        ) /
+        .20
+      );
+
+
+    if (
+      !oldMagThrown
+    ) {
+
+      oldMagThrown = true;
+
+
+      throwMagazineFrom(
+        oldMagazine
+      );
+
+
+      oldMagazine.visible =
+        false;
+
+    }
+
+
+    moveBetween(
+      leftHand,
+      handRip,
+      handThrow,
+      p
+    );
+
+
+    leftHand.rotation.z =
+      -p * .8;
+
+  }
+
+
+  else if (
+    t < 1.18
+  ) {
+
+    const p =
+      snap(
+        (
+          t - .88
+        ) /
+        .30
+      );
+
+
+    moveBetween(
+      leftHand,
+      handThrow,
+      handHidden,
+      p
+    );
+
+  }
+
+
+  else if (
+    t < 1.48
+  ) {
+
+    const p =
+      snap(
+        (
+          t - 1.18
+        ) /
+        .30
+      );
+
+
+    freshMagazine.visible =
+      true;
+
+
+    moveBetween(
+      leftHand,
+      handHidden,
+      handFresh,
+      p
+    );
+
+
+    freshMagazine.position.set(
+      THREE.MathUtils.lerp(
+        -.10,
+        0,
+        p
+      ),
+      THREE.MathUtils.lerp(
+        MAG_START_Y,
+        -.56,
+        p
+      ),
+      THREE.MathUtils.lerp(
+        .10,
+        MAG_Z,
+        p
+      )
+    );
+
+  }
+
+
+  else if (
+    t < 1.82
+  ) {
+
+    const p =
+      smooth(
+        (
+          t - 1.48
+        ) /
+        .34
+      );
+
+
+    moveBetween(
+      leftHand,
+      handFresh,
+      handAlign,
+      p
+    );
+
+
+    freshMagazine.position.set(
+      THREE.MathUtils.lerp(
+        -.03,
+        0,
+        p
+      ),
+      THREE.MathUtils.lerp(
+        -.56,
+        MAG_ALIGN_Y,
+        p
+      ),
+      MAG_Z
+    );
+
+
+    freshMagazine.rotation.z =
+      Math.sin(
+        p *
+        Math.PI *
+        4
+      ) *
+      .055 *
+      (
+        1 - p
+      );
+
+  }
+
+
+  else if (
+    t < 2.25
+  ) {
+
+    const p =
+      smooth(
+        (
+          t - 1.82
+        ) /
+        .43
+      );
+
+
+    moveBetween(
+      leftHand,
+      handAlign,
+      handSeat,
+      p
+    );
+
+
+    freshMagazine.visible =
+      true;
+
+
+    freshMagazine.position.x =
+      0;
+
+
+    freshMagazine.position.z =
+      MAG_Z;
+
+
+    freshMagazine.position.y =
+      THREE.MathUtils.lerp(
+        MAG_ALIGN_Y,
+        MAG_FULLY_INSERTED_Y,
+        p
+      );
+
+
+    freshMagazine.rotation.z =
+      Math.sin(
+        p *
+        Math.PI *
+        5
+      ) *
+      .035 *
+      (
+        1 - p
+      );
+
+
+    if (
+      p > .86
+    ) {
+
+      if (
+        !magInSoundPlayed
+      ) {
+
+        magInSoundPlayed =
+          true;
+
+
+        soundMagIn();
+
+      }
+
+
+      const impact =
+        (
+          p - .86
+        ) /
+        .14;
+
+
+      reloadShake =
+        Math.sin(
+          impact *
+          Math.PI *
+          7
+        ) *
+        .045 *
+        (
+          1 - impact
+        );
+
+    }
+
+  }
+
+
+  else if (
+    t < 2.52
+  ) {
+
+    const p =
+      snap(
+        (
+          t - 2.25
+        ) /
+        .27
+      );
+
+
+    freshMagazine.visible =
+      true;
+
+
+    freshMagazine.position.set(
+      0,
+      MAG_FULLY_INSERTED_Y,
+      MAG_Z
+    );
+
+
+    freshMagazine.rotation.set(
+      0,
+      0,
+      0
+    );
+
+
+    moveBetween(
+      leftHand,
+      handSeat,
+      handSlideFront,
+      p
+    );
+
+
+    leftHand.rotation.x =
+      -p *
+      .45;
+
+  }
+
+
+  else if (
+    t < 2.86
+  ) {
+
+    const p =
+      snap(
+        (
+          t - 2.52
+        ) /
+        .34
+      );
+
+
+    freshMagazine.visible =
+      true;
+
+
+    freshMagazine.position.set(
+      0,
+      MAG_FULLY_INSERTED_Y,
+      MAG_Z
+    );
+
+
+    if (
+      !slidePullPlayed
+    ) {
+
+      slidePullPlayed =
+        true;
+
+
+      soundSlidePull();
+
+    }
+
+
+    moveBetween(
+      leftHand,
+      handSlideFront,
+      handSlideRear,
+      p
+    );
+
+
+    slideGroup.position.z =
+      THREE.MathUtils.lerp(
+        0,
+        .158,
+        p
+      );
+
+
+    gun.rotation.x =
+      -p *
+      .085;
+
+
+    gun.rotation.z =
+      -p *
+      .16;
+
+  }
+
+
+  else if (
+    t < 3.02
+  ) {
+
+    const p =
+      snap(
+        (
+          t - 2.86
+        ) /
+        .16
+      );
+
+
+    freshMagazine.visible =
+      true;
+
+
+    freshMagazine.position.set(
+      0,
+      MAG_FULLY_INSERTED_Y,
+      MAG_Z
+    );
+
+
+    if (
+      !slideReleasePlayed
+    ) {
+
+      slideReleasePlayed =
+        true;
+
+
+      soundSlideRelease();
+
+    }
+
+
+    slideGroup.position.z =
+      THREE.MathUtils.lerp(
+        .158,
+        0,
+        p
+      );
+
+
+    reloadShake =
+      Math.sin(
+        p *
+        Math.PI *
+        8
+      ) *
+      .035 *
+      (
+        1 - p
+      );
+
+  }
+
+
+  else if (
+    t < RELOAD_LENGTH
+  ) {
+
+    const p =
+      snap(
+        (
+          t - 3.02
+        ) /
+        (
+          RELOAD_LENGTH -
+          3.02
+        )
+      );
+
+
+    freshMagazine.visible =
+      true;
+
+
+    freshMagazine.position.set(
+      0,
+      MAG_FULLY_INSERTED_Y,
+      MAG_Z
+    );
+
+
+    moveBetween(
+      leftHand,
+      handSlideRear,
+      handHidden,
+      p
+    );
+
+
+    gun.rotation.x =
+      THREE.MathUtils.lerp(
+        gun.rotation.x,
+        0,
+        .25
+      );
+
+
+    gun.rotation.z =
+      THREE.MathUtils.lerp(
+        gun.rotation.z,
+        0,
+        .25
+      );
+
+  }
+
+
+  else {
+
+    finishReload();
+
+  }
+
+}
+
+
+function finishReload() {
+
+  reloading = false;
+
+
+  leftHand.visible = false;
+
+
+  leftHand.rotation.set(
+    0,
+    0,
+    0
+  );
+
+
+  oldMagazine.visible = false;
+
+
+  freshMagazine.visible = false;
+
+
+  slideLocked = false;
+
+
+  slideKick = 0;
+
+
+  slideGroup.position.z = 0;
+
+
+  gun.position.set(
+    0,
+    0,
+    0
+  );
+
+
+  gun.rotation.set(
+    0,
+    0,
+    0
+  );
+
+
+  reloadShake = 0;
+
+
+  player.ammo = 12;
+
+
+  ammoText.textContent = 12;
+
+
+  modeText.textContent =
+    "HIP FIRE";
+
+}
+
+
+/* =========================================================
+   RECOIL
+========================================================= */
+
+function updateRecoil() {
+
+  const recovery =
+    ads
+      ? .17
+      : .115;
+
+
+  recoilPitch =
+    THREE.MathUtils.lerp(
+      recoilPitch,
+      0,
+      recovery
+    );
+
+
+  recoilYaw =
+    THREE.MathUtils.lerp(
+      recoilYaw,
+      0,
+      recovery
+    );
+
+
+  if (
+    !reloading
+  ) {
+
+    if (
+      slideLocked
+    ) {
+
+      slideGroup.position.z =
+        THREE.MathUtils.lerp(
+          slideGroup.position.z,
+          .085,
+          .20
+        );
+
+    }
+
+    else {
+
+      slideKick =
+        THREE.MathUtils.lerp(
+          slideKick,
+          0,
+          .27
+        );
+
+
+      slideGroup.position.z =
+        slideKick;
+
+    }
+
+  }
+
+
+  weaponKickBack =
+    THREE.MathUtils.lerp(
+      weaponKickBack,
+      0,
+      .18
+    );
+
+
+  weaponKickUp =
+    THREE.MathUtils.lerp(
+      weaponKickUp,
+      0,
+      .15
+    );
+
+}
+
+
+/* =========================================================
+   FLASH
+========================================================= */
+
+function updateFlash(delta) {
+
+  if (
+    flashTimer > 0
+  ) {
+
+    flashTimer -= delta;
+
+
+    const pulse =
+      .82 +
+      Math.random() *
+      .30;
+
+
+    flash.scale.set(
+      .28 * pulse,
+      .28 * pulse,
+      .28 * pulse
+    );
+
+
+    flash.material.rotation =
+      Math.random() *
+      Math.PI;
+
+
+    muzzleLight.intensity =
+      4 +
+      Math.random() *
+      4;
+
+  }
+
+  else {
+
+    flash.visible =
+      false;
+
+
+    muzzleLight.intensity =
+      0;
+
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE LOOK
+
+   Pointer lock is desktop-only.
+
+   Touch controls remain separate.
+========================================================= */
+
+let lookTouch =
+  null;
+
+
+let touchLookX =
+  0;
+
+let touchLookY =
+  0;
+
+
+renderer.domElement.addEventListener(
+  "touchstart",
+  e => {
+
+    for (
+      const touch
+      of e.changedTouches
+    ) {
+
+      if (
+        touch.clientX >
+        innerWidth *
+        .34
+      ) {
+
+        lookTouch =
+          touch.identifier;
+
+
+        touchLookX =
+          touch.clientX;
+
+
+        touchLookY =
+          touch.clientY;
+
+
+        break;
+
+      }
+
+    }
+
+  },
+  {
+    passive: false
+  }
+);
+
+
+renderer.domElement.addEventListener(
+  "touchmove",
+  e => {
+
+    for (
+      const touch
+      of e.changedTouches
+    ) {
+
+      if (
+        touch.identifier ===
+        lookTouch
+      ) {
+
+        const dx =
+          touch.clientX -
+          touchLookX;
+
+
+        const dy =
+          touch.clientY -
+          touchLookY;
+
+
+        yaw -=
+          dx * .006;
+
+
+        pitch -=
+          dy * .006;
+
+
+        pitch =
+          THREE.MathUtils.clamp(
+            pitch,
+            -Math.PI / 2 + .015,
+            Math.PI / 2 - .015
+          );
+
+
+        touchLookX =
+          touch.clientX;
+
+
+        touchLookY =
+          touch.clientY;
+
+
+        e.preventDefault();
+
+      }
+
+    }
+
+  },
+  {
+    passive: false
+  }
+);
+
+
+/* =========================================================
+   MOBILE JOYSTICK
+========================================================= */
+
+const joystick =
+  document.getElementById(
+    "joystick"
+  );
+
+
+const stick =
+  document.getElementById(
+    "stick"
+  );
+
+
+let joystickTouch =
+  null;
+
+
+joystick.addEventListener(
+  "touchstart",
+  e => {
+
+    const touch =
+      e.changedTouches[0];
+
+
+    joystickTouch =
+      touch.identifier;
+
+
+    moveJoystick(
+      touch
+    );
+
+
+    e.preventDefault();
+
+  }
+);
+
+
+joystick.addEventListener(
+  "touchmove",
+  e => {
+
+    for (
+      const touch
+      of e.changedTouches
+    ) {
+
+      if (
+        touch.identifier ===
+        joystickTouch
+      ) {
+
+        moveJoystick(
+          touch
+        );
+
+
+        e.preventDefault();
+
+      }
+
+    }
+
+  }
+);
+
+
+joystick.addEventListener(
+  "touchend",
+  () => {
+
+    joystickX = 0;
+    joystickY = 0;
+
+
+    stick.style.left =
+      "35px";
+
+
+    stick.style.top =
+      "35px";
+
+  }
+);
+
+
+function moveJoystick(touch) {
+
+  const rect =
+    joystick.getBoundingClientRect();
+
+
+  let x =
+    touch.clientX -
+    rect.left -
+    60;
+
+
+  let y =
+    touch.clientY -
+    rect.top -
+    60;
+
+
+  const length =
+    Math.hypot(
+      x,
+      y
+    );
+
+
+  if (
+    length > 40
+  ) {
+
+    x =
+      x /
+      length *
+      40;
+
+
+    y =
+      y /
+      length *
+      40;
+
+  }
+
+
+  joystickX =
+    x / 40;
+
+
+  joystickY =
+    y / 40;
+
+
+  stick.style.left =
+    35 +
+    x +
+    "px";
+
+
+  stick.style.top =
+    35 +
+    y +
+    "px";
+
+}
+
+
+/* =========================================================
+   MOBILE FIRE / ADS
+========================================================= */
+
+document
+  .getElementById(
+    "fireButton"
+  )
+  .addEventListener(
+    "touchstart",
+    e => {
+
+      ensureAudio();
+
+
+      e.preventDefault();
+
+
+      fire();
+
+    }
+  );
+
+
+const adsButton =
+  document.getElementById(
+    "adsButton"
+  );
+
+
+adsButton.addEventListener(
+  "touchstart",
+  e => {
+
+    e.preventDefault();
+
+
+    setADS(true);
+
+  }
+);
+
+
+adsButton.addEventListener(
+  "touchend",
+  e => {
+
+    e.preventDefault();
+
+
+    setADS(false);
+
+  }
+);
+
+
+/* =========================================================
+   RESIZE
+========================================================= */
+
+window.addEventListener(
+  "resize",
+  () => {
+
+    renderer.setSize(
+      innerWidth,
+      innerHeight
+    );
+
+
+    renderer.setPixelRatio(
+      Math.min(
+        devicePixelRatio,
+        2
+      )
+    );
+
+
+    camera.aspect =
+      innerWidth /
+      innerHeight;
+
+
+    camera.updateProjectionMatrix();
+
+  }
+);
+
+
+/* =========================================================
+   START
+========================================================= */
+
+loading.style.display =
+  "none";
+
+
+/* =========================================================
+   GAME LOOP
+========================================================= */
+
+const clock =
+  new THREE.Clock();
+
+
+function animate() {
+
+  requestAnimationFrame(
+    animate
+  );
+
+
+  const delta =
+    Math.min(
+      clock.getDelta(),
+      .033
+    );
+
+
+  updateMovement(delta);
+
+
+  updateTrigger(delta);
+
+
+  updateRecoil();
+
+
+  updateReload();
+
+
+  updateCamera();
+
+
+  updateWeapon();
+
+
+  updateFlash(delta);
+
+
+  updateLooseObjects(delta);
+
+
+  renderer.render(
+    scene,
+    camera
+  );
+
+}
+
+
+animate();
+
+</script>
+
+</body>
+</html>

@@ -1,2903 +1,1105 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <base target="_top">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
-  >
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>FPS Game</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
+    * { box-sizing: border-box; }
+    html, body {
       margin: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #88c8e7;
+      background: #7fc4e8;
       font-family: Arial, Helvetica, sans-serif;
       user-select: none;
       touch-action: none;
     }
 
-    #game {
-      position: fixed;
-      inset: 0;
-      cursor: pointer;
-    }
-
-    body.controlled #game {
-      cursor: none;
-    }
-
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-
-    #loading {
-      position: fixed;
-      inset: 0;
-      z-index: 1000;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      background:
-        linear-gradient(
-          #79bfe3 0%,
-          #cce7f1 54%,
-          #65884c 55%,
-          #385b2f 100%
-        );
-
-      color: white;
-      font-size: 18px;
-      font-weight: bold;
-
-      text-shadow:
-        0 2px 5px rgba(0,0,0,.55);
-    }
+    #game { position: fixed; inset: 0; cursor: crosshair; }
+    body.locked #game { cursor: none; }
+    canvas { display: block; width: 100%; height: 100%; }
 
     #hud {
       position: fixed;
       left: 16px;
       top: 16px;
-      z-index: 50;
-
+      z-index: 20;
       padding: 11px 14px;
-
-      border:
-        1px solid rgba(255,255,255,.14);
-
-      border-radius: 9px;
-
-      background:
-        rgba(10,15,12,.35);
-
-      backdrop-filter:
-        blur(5px);
-
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 10px;
+      background: rgba(10,18,16,.38);
       color: white;
-
-      font-size: 15px;
-      font-weight: bold;
+      font-weight: 700;
+      font-size: 14px;
       line-height: 1.55;
-
-      text-shadow:
-        0 2px 4px black;
-
+      backdrop-filter: blur(6px);
+      text-shadow: 0 2px 5px rgba(0,0,0,.75);
       pointer-events: none;
     }
 
-    #mode {
-      margin-top: 4px;
-      color: #d9ebd3;
-      font-size: 12px;
-    }
+    #mode { margin-top: 4px; font-size: 11px; color: #d7ead0; letter-spacing: .04em; }
 
     #controls {
       position: fixed;
       right: 16px;
       top: 16px;
-      z-index: 50;
-
-      padding: 10px 13px;
-
-      border-radius: 9px;
-
-      background:
-        rgba(10,15,12,.32);
-
-      backdrop-filter:
-        blur(5px);
-
+      z-index: 20;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(10,18,16,.32);
       color: white;
-
-      font-size: 13px;
-      line-height: 1.55;
-
+      font-size: 12px;
+      line-height: 1.5;
+      backdrop-filter: blur(6px);
       pointer-events: none;
     }
 
-    #controlPrompt {
+    #prompt {
       position: fixed;
       left: 50%;
       top: 72%;
-
-      transform:
-        translate(-50%,-50%);
-
-      z-index: 60;
-
-      padding: 11px 18px;
-
-      border-radius: 22px;
-
-      background:
-        rgba(0,0,0,.45);
-
+      transform: translate(-50%,-50%);
+      z-index: 25;
+      padding: 11px 17px;
+      border-radius: 30px;
+      background: rgba(0,0,0,.48);
       color: white;
-
       font-size: 14px;
-      font-weight: bold;
-
+      font-weight: 700;
       pointer-events: none;
     }
+    body.locked #prompt { display: none; }
 
-    body.controlled #controlPrompt {
-      display: none;
-    }
-
-    #bigMessage {
+    #message {
       position: fixed;
       left: 50%;
-      top: 38%;
-
-      transform:
-        translate(-50%,-50%);
-
-      z-index: 160;
-
+      top: 37%;
+      transform: translate(-50%,-50%);
+      z-index: 30;
       opacity: 0;
-
       color: white;
-
-      font-size:
-        clamp(22px,3vw,38px);
-
+      font-size: clamp(22px,3vw,38px);
       font-weight: 900;
       letter-spacing: .04em;
-
-      text-shadow:
-        0 3px 9px black;
-
+      text-shadow: 0 3px 10px black;
+      transition: opacity .08s ease;
       pointer-events: none;
-
-      transition:
-        opacity .08s ease;
     }
+    #message.show { opacity: 1; }
 
-    #bigMessage.show {
-      opacity: 1;
+    #modelStatus {
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      z-index: 20;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(0,0,0,.34);
+      color: rgba(255,255,255,.9);
+      font-size: 11px;
+      pointer-events: none;
     }
 
     #crosshair {
       position: fixed;
       left: 50%;
       top: 50%;
-
-      width: 30px;
-      height: 30px;
-
-      transform:
-        translate(-50%,-50%);
-
-      z-index: 100;
-
+      width: 32px;
+      height: 32px;
+      transform: translate(-50%,-50%);
+      z-index: 24;
       pointer-events: none;
+      transition: transform .12s ease, opacity .12s ease;
     }
 
-    .crossLine {
+    .cross {
       position: absolute;
-
       background: white;
-
-      box-shadow:
-        0 0 2px black,
-        0 0 5px rgba(0,0,0,.85);
+      box-shadow: 0 0 2px black, 0 0 5px rgba(0,0,0,.8);
     }
-
-    .crossTop {
-      width: 2px;
-      height: 7px;
-      left: 14px;
-      top: 0;
+    .ct { width:2px; height:7px; left:15px; top:0; }
+    .cb { width:2px; height:7px; left:15px; bottom:0; }
+    .cl { width:7px; height:2px; left:0; top:15px; }
+    .cr { width:7px; height:2px; right:0; top:15px; }
+    .dot {
+      position:absolute;
+      left:14px;
+      top:14px;
+      width:4px;
+      height:4px;
+      border-radius:50%;
+      background:#ff3434;
+      box-shadow:0 0 3px black;
     }
-
-    .crossBottom {
-      width: 2px;
-      height: 7px;
-      left: 14px;
-      bottom: 0;
-    }
-
-    .crossLeft {
-      width: 7px;
-      height: 2px;
-      left: 0;
-      top: 14px;
-    }
-
-    .crossRight {
-      width: 7px;
-      height: 2px;
-      right: 0;
-      top: 14px;
-    }
-
-    #crossDot {
-      position: absolute;
-      left: 13px;
-      top: 13px;
-
-      width: 4px;
-      height: 4px;
-
-      border-radius: 50%;
-
-      background: #ff3a3a;
-
-      box-shadow:
-        0 0 3px black;
-    }
-
     body.ads #crosshair {
-      transform:
-        translate(-50%,-50%)
-        scale(.68);
-
-      opacity: .84;
+      transform: translate(-50%,-50%) scale(.64);
+      opacity: .82;
     }
 
     #hitMarker {
       position: fixed;
       left: 50%;
       top: 50%;
-
       width: 28px;
       height: 28px;
-
-      transform:
-        translate(-50%,-50%);
-
+      transform: translate(-50%,-50%);
       display: none;
-
-      z-index: 110;
-
+      z-index: 26;
       pointer-events: none;
     }
-
-    #hitMarker::before,
-    #hitMarker::after {
-      content: "";
-
-      position: absolute;
-
-      left: 13px;
-      top: 3px;
-
-      width: 2px;
-      height: 22px;
-
-      background: white;
-
-      box-shadow:
-        0 0 3px black;
+    #hitMarker::before, #hitMarker::after {
+      content:"";
+      position:absolute;
+      left:13px;
+      top:3px;
+      width:2px;
+      height:22px;
+      background:white;
+      box-shadow:0 0 3px black;
     }
-
-    #hitMarker::before {
-      transform: rotate(45deg);
-    }
-
-    #hitMarker::after {
-      transform: rotate(-45deg);
-    }
+    #hitMarker::before { transform:rotate(45deg); }
+    #hitMarker::after { transform:rotate(-45deg); }
 
     #joystick {
       position: fixed;
-      left: 25px;
+      left: 24px;
       bottom: 28px;
-
       width: 120px;
       height: 120px;
-
       border-radius: 50%;
-
-      background:
-        rgba(0,0,0,.23);
-
-      border:
-        2px solid rgba(255,255,255,.35);
-
-      z-index: 90;
+      z-index: 30;
+      border: 2px solid rgba(255,255,255,.34);
+      background: rgba(0,0,0,.2);
     }
-
     #stick {
       position: absolute;
       left: 35px;
       top: 35px;
-
       width: 50px;
       height: 50px;
-
       border-radius: 50%;
-
-      background:
-        rgba(255,255,255,.74);
+      background: rgba(255,255,255,.72);
     }
 
-    #fireButton,
-    #adsButton {
+    #fireButton, #adsButton {
       position: fixed;
-
-      z-index: 90;
-
+      z-index: 30;
       border-radius: 50%;
-
-      border:
-        2px solid rgba(255,255,255,.44);
-
+      border: 2px solid rgba(255,255,255,.42);
       color: white;
-
-      font-weight: bold;
+      font-weight: 800;
     }
-
     #fireButton {
-      right: 26px;
-      bottom: 32px;
-
-      width: 88px;
-      height: 88px;
-
-      background:
-        rgba(172,30,30,.8);
+      right: 25px;
+      bottom: 31px;
+      width: 90px;
+      height: 90px;
+      background: rgba(170,28,28,.82);
     }
-
     #adsButton {
       right: 45px;
-      bottom: 134px;
-
+      bottom: 138px;
       width: 66px;
       height: 66px;
-
-      background:
-        rgba(27,44,34,.76);
+      background: rgba(28,45,34,.78);
     }
 
     @media(pointer:fine) {
-      #joystick,
-      #fireButton,
-      #adsButton {
-        display: none;
-      }
+      #joystick, #fireButton, #adsButton { display:none; }
     }
-
     @media(pointer:coarse) {
-      #controls,
-      #controlPrompt {
-        display: none;
-      }
+      #controls, #prompt { display:none; }
     }
   </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
+    }
+  }
+  </script>
 </head>
 
 <body>
+  <div id="game"></div>
 
-<div id="game"></div>
-
-<div id="loading">
-  Loading shooting range...
-</div>
-
-<div id="hud">
-  HEALTH <span id="health">100</span><br>
-  AMMO <span id="ammo">12</span><br>
-  SCORE <span id="score">0</span>
-
-  <div id="mode">
-    HIP FIRE
+  <div id="hud">
+    HEALTH <span id="health">100</span><br>
+    AMMO <span id="ammo">12</span><br>
+    SCORE <span id="score">0</span>
+    <div id="mode">HIP FIRE</div>
   </div>
-</div>
 
-<div id="controls">
-  Click: Lock Mouse<br>
-  Mouse: Look 360°<br>
-  WASD: Move<br>
-  Left Click: Fire<br>
-  Hold SHIFT: ADS<br>
-  R: Reload<br>
-  ESC: Release Mouse
-</div>
+  <div id="controls">
+    Click: lock mouse<br>
+    Mouse: look<br>
+    WASD: move<br>
+    Left click: fire<br>
+    Shift: ADS<br>
+    R: reload<br>
+    Esc: release mouse
+  </div>
 
-<div id="controlPrompt">
-  Click to lock mouse
-</div>
+  <div id="prompt">Click to lock mouse</div>
+  <div id="message"></div>
+  <div id="modelStatus">Weapon: loading model…</div>
 
-<div id="bigMessage"></div>
+  <div id="crosshair">
+    <div class="cross ct"></div>
+    <div class="cross cb"></div>
+    <div class="cross cl"></div>
+    <div class="cross cr"></div>
+    <div class="dot"></div>
+  </div>
 
-<div id="crosshair">
-  <div class="crossLine crossTop"></div>
-  <div class="crossLine crossBottom"></div>
-  <div class="crossLine crossLeft"></div>
-  <div class="crossLine crossRight"></div>
-  <div id="crossDot"></div>
-</div>
+  <div id="hitMarker"></div>
 
-<div id="hitMarker"></div>
+  <div id="joystick"><div id="stick"></div></div>
+  <button id="fireButton">FIRE</button>
+  <button id="adsButton">ADS</button>
 
-<div id="joystick">
-  <div id="stick"></div>
-</div>
-
-<button id="fireButton">
-  FIRE
-</button>
-
-<button id="adsButton">
-  ADS
-</button>
-
-
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
-
-
-<script>
-
-if (typeof THREE === "undefined") {
-  throw new Error("Three.js failed to load.");
-}
-
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 /* =========================================================
    DOM
 ========================================================= */
 
-const container =
-  document.getElementById("game");
-
-const loading =
-  document.getElementById("loading");
-
-const ammoText =
-  document.getElementById("ammo");
-
-const scoreText =
-  document.getElementById("score");
-
-const modeText =
-  document.getElementById("mode");
-
-const bigMessage =
-  document.getElementById("bigMessage");
-
-const hitMarker =
-  document.getElementById("hitMarker");
-
-
-/* =========================================================
-   AUDIO
-========================================================= */
-
-let audioContext = null;
-let compressor = null;
-let masterGain = null;
-
-
-function ensureAudio() {
-
-  if (!audioContext) {
-
-    audioContext =
-      new (
-        window.AudioContext ||
-        window.webkitAudioContext
-      )();
-
-    compressor =
-      audioContext.createDynamicsCompressor();
-
-    compressor.threshold.value = -12;
-    compressor.knee.value = 8;
-    compressor.ratio.value = 10;
-    compressor.attack.value = .0005;
-    compressor.release.value = .12;
-
-    masterGain =
-      audioContext.createGain();
-
-    masterGain.gain.value = .68;
-
-    compressor.connect(
-      masterGain
-    );
-
-    masterGain.connect(
-      audioContext.destination
-    );
-  }
-
-  if (
-    audioContext.state ===
-    "suspended"
-  ) {
-    audioContext.resume();
-  }
-}
-
-
-function createNoiseBuffer(duration) {
-
-  const length =
-    Math.ceil(
-      audioContext.sampleRate *
-      duration
-    );
-
-  const buffer =
-    audioContext.createBuffer(
-      1,
-      length,
-      audioContext.sampleRate
-    );
-
-  const data =
-    buffer.getChannelData(0);
-
-  for (
-    let i = 0;
-    i < length;
-    i++
-  ) {
-    data[i] =
-      Math.random() * 2 - 1;
-  }
-
-  return buffer;
-}
-
-
-function noiseImpulse(
-  duration,
-  volume,
-  type,
-  frequency,
-  decay = 3,
-  delay = 0
-) {
-
-  ensureAudio();
-
-  const source =
-    audioContext.createBufferSource();
-
-  source.buffer =
-    createNoiseBuffer(duration);
-
-  const filter =
-    audioContext.createBiquadFilter();
-
-  filter.type = type;
-  filter.frequency.value =
-    frequency;
-
-  const gain =
-    audioContext.createGain();
-
-  const now =
-    audioContext.currentTime +
-    delay;
-
-  gain.gain.setValueAtTime(
-    volume,
-    now
-  );
-
-  for (
-    let i = 1;
-    i <= 7;
-    i++
-  ) {
-
-    const life =
-      1 - i / 7;
-
-    gain.gain.linearRampToValueAtTime(
-      Math.max(
-        .0001,
-        volume *
-        Math.pow(
-          life,
-          decay
-        )
-      ),
-      now +
-      duration *
-      i / 7
-    );
-  }
-
-  source.connect(filter);
-  filter.connect(gain);
-  gain.connect(compressor);
-
-  source.start(now);
-  source.stop(
-    now + duration
-  );
-}
-
-
-function lowImpulse(
-  startFrequency,
-  endFrequency,
-  duration,
-  volume,
-  delay = 0
-) {
-
-  ensureAudio();
-
-  const oscillator =
-    audioContext.createOscillator();
-
-  const gain =
-    audioContext.createGain();
-
-  const now =
-    audioContext.currentTime +
-    delay;
-
-  oscillator.type = "triangle";
-
-  oscillator.frequency.setValueAtTime(
-    startFrequency,
-    now
-  );
-
-  oscillator.frequency.exponentialRampToValueAtTime(
-    Math.max(
-      20,
-      endFrequency
-    ),
-    now + duration
-  );
-
-  gain.gain.setValueAtTime(
-    volume,
-    now
-  );
-
-  gain.gain.exponentialRampToValueAtTime(
-    .0001,
-    now + duration
-  );
-
-  oscillator.connect(gain);
-  gain.connect(compressor);
-
-  oscillator.start(now);
-  oscillator.stop(
-    now + duration
-  );
-}
-
-
-function metalClick(
-  power = 1,
-  delay = 0
-) {
-
-  noiseImpulse(
-    .018,
-    .20 * power,
-    "highpass",
-    3300,
-    4,
-    delay
-  );
-
-  noiseImpulse(
-    .035,
-    .10 * power,
-    "bandpass",
-    1900,
-    3,
-    delay + .002
-  );
-
-  lowImpulse(
-    320,
-    140,
-    .038,
-    .05 * power,
-    delay
-  );
-}
-
-
-function soundGunshot() {
-
-  noiseImpulse(
-    .006,
-    1,
-    "highpass",
-    3600,
-    5
-  );
-
-  noiseImpulse(
-    .022,
-    .94,
-    "bandpass",
-    1750,
-    3
-  );
-
-  noiseImpulse(
-    .05,
-    .48,
-    "lowpass",
-    820,
-    3
-  );
-
-  lowImpulse(
-    145,
-    48,
-    .085,
-    .43
-  );
-
-  metalClick(
-    .52,
-    .015
-  );
-}
-
-
-function soundEmpty() {
-  metalClick(.72);
-}
-
-
-function soundMagOut() {
-  metalClick(.85);
-}
-
-
-function soundMagIn() {
-
-  noiseImpulse(
-    .055,
-    .32,
-    "lowpass",
-    900,
-    3
-  );
-
-  lowImpulse(
-    175,
-    60,
-    .075,
-    .26
-  );
-
-  metalClick(
-    1.2,
-    .005
-  );
-}
-
-
-function soundSlidePull() {
-
-  noiseImpulse(
-    .115,
-    .18,
-    "bandpass",
-    2100,
-    1.4
-  );
-}
-
-
-function soundSlideRelease() {
-
-  metalClick(1.6);
-
-  noiseImpulse(
-    .035,
-    .24,
-    "bandpass",
-    2150,
-    4
-  );
-}
-
+const game = document.getElementById('game');
+const ammoText = document.getElementById('ammo');
+const scoreText = document.getElementById('score');
+const modeText = document.getElementById('mode');
+const messageEl = document.getElementById('message');
+const hitMarker = document.getElementById('hitMarker');
+const modelStatus = document.getElementById('modelStatus');
 
 /* =========================================================
    RENDERER
 ========================================================= */
 
-const renderer =
-  new THREE.WebGLRenderer({
-    antialias: true,
-    powerPreference:
-      "high-performance"
-  });
+const renderer = new THREE.WebGLRenderer({
+  antialias: true,
+  powerPreference: 'high-performance'
+});
 
-
-renderer.setPixelRatio(
-  Math.min(
-    devicePixelRatio,
-    2
-  )
-);
-
-
-renderer.setSize(
-  innerWidth,
-  innerHeight
-);
-
-
-renderer.shadowMap.enabled =
-  true;
-
-
-renderer.shadowMap.type =
-  THREE.PCFSoftShadowMap;
-
-
-renderer.outputColorSpace =
-  THREE.SRGBColorSpace;
-
-
-renderer.toneMapping =
-  THREE.ACESFilmicToneMapping;
-
-
-renderer.toneMappingExposure =
-  1.07;
-
-
-container.appendChild(
-  renderer.domElement
-);
-
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+game.appendChild(renderer.domElement);
 
 /* =========================================================
-   SCENE
+   SCENE / CAMERA
 ========================================================= */
 
-const scene =
-  new THREE.Scene();
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8dcceb);
+scene.fog = new THREE.Fog(0xb8d8df, 36, 125);
 
+const camera = new THREE.PerspectiveCamera(
+  72,
+  window.innerWidth / window.innerHeight,
+  0.03,
+  250
+);
 
-scene.background =
-  new THREE.Color(
-    0x87c8e8
-  );
-
-
-scene.fog =
-  new THREE.FogExp2(
-    0xc8dfe5,
-    .0095
-  );
-
-
-const camera =
-  new THREE.PerspectiveCamera(
-    71,
-    innerWidth / innerHeight,
-    .035,
-    230
-  );
-
-
-camera.rotation.order =
-  "YXZ";
-
-
+camera.rotation.order = 'YXZ';
 scene.add(camera);
-
 
 /* =========================================================
    LIGHTING
 ========================================================= */
 
-scene.add(
-  new THREE.HemisphereLight(
-    0xecf9ff,
-    0x415a34,
-    2.5
-  )
-);
+const hemi = new THREE.HemisphereLight(0xeefaff, 0x40552f, 2.15);
+scene.add(hemi);
 
-
-const sun =
-  new THREE.DirectionalLight(
-    0xfff2d3,
-    3.45
-  );
-
-
-sun.position.set(
-  -12,
-  20,
-  8
-);
-
-
-sun.castShadow =
-  true;
-
-
-sun.shadow.mapSize.set(
-  2048,
-  2048
-);
-
-
+const sun = new THREE.DirectionalLight(0xfff1ce, 3.6);
+sun.position.set(-14, 24, 10);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -38;
+sun.shadow.camera.right = 38;
+sun.shadow.camera.top = 38;
+sun.shadow.camera.bottom = -38;
+sun.shadow.camera.near = 1;
+sun.shadow.camera.far = 80;
+sun.shadow.bias = -0.0004;
 scene.add(sun);
 
-
 /* =========================================================
-   SKY
+   SKY DOME
 ========================================================= */
 
-const sky =
-  new THREE.Mesh(
-    new THREE.SphereGeometry(
-      150,
-      72,
-      48
-    ),
-    new THREE.MeshBasicMaterial({
-      color: 0x92d0ee,
-      side: THREE.BackSide
-    })
-  );
-
-
-scene.add(sky);
-
+const skyGeo = new THREE.SphereGeometry(170, 48, 30);
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide,
+  uniforms: {
+    topColor: { value: new THREE.Color(0x4fa8df) },
+    bottomColor: { value: new THREE.Color(0xe9f4ee) },
+    offset: { value: 18 },
+    exponent: { value: 0.72 }
+  },
+  vertexShader: `
+    varying vec3 vWorldPosition;
+    void main() {
+      vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+      vWorldPosition = worldPosition.xyz;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform vec3 topColor;
+    uniform vec3 bottomColor;
+    uniform float offset;
+    uniform float exponent;
+    varying vec3 vWorldPosition;
+    void main() {
+      float h = normalize(vWorldPosition + vec3(0.0, offset, 0.0)).y;
+      float mixValue = max(pow(max(h, 0.0), exponent), 0.0);
+      gl_FragColor = vec4(mix(bottomColor, topColor, mixValue), 1.0);
+    }
+  `
+});
+scene.add(new THREE.Mesh(skyGeo, skyMat));
 
 /* =========================================================
-   GRASS
+   PROCEDURAL GROUND TEXTURE
 ========================================================= */
 
-function createGrassTexture() {
+function makeGroundTexture() {
+  const c = document.createElement('canvas');
+  c.width = 1024;
+  c.height = 1024;
+  const ctx = c.getContext('2d');
 
-  const canvas =
-    document.createElement(
-      "canvas"
-    );
+  const g = ctx.createLinearGradient(0, 0, 1024, 1024);
+  g.addColorStop(0, '#6d8c50');
+  g.addColorStop(.5, '#587942');
+  g.addColorStop(1, '#466a37');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,1024,1024);
 
-  canvas.width = 512;
-  canvas.height = 512;
-
-  const ctx =
-    canvas.getContext("2d");
-
-  const gradient =
-    ctx.createLinearGradient(
-      0,
-      0,
-      512,
-      512
-    );
-
-  gradient.addColorStop(
-    0,
-    "#718e51"
-  );
-
-  gradient.addColorStop(
-    1,
-    "#476c39"
-  );
-
-  ctx.fillStyle =
-    gradient;
-
-  ctx.fillRect(
-    0,
-    0,
-    512,
-    512
-  );
-
-  for (
-    let i = 0;
-    i < 12000;
-    i++
-  ) {
-
-    const alpha =
-      .03 +
-      Math.random() * .12;
-
-    ctx.fillStyle =
-      Math.random() > .5
-        ? `rgba(30,70,25,${alpha})`
-        : `rgba(140,165,82,${alpha})`;
-
-    ctx.fillRect(
-      Math.random() * 512,
-      Math.random() * 512,
-      1 + Math.random() * 2,
-      1 + Math.random() * 2
-    );
+  for (let i=0;i<26000;i++) {
+    const a = .025 + Math.random() * .1;
+    ctx.fillStyle = Math.random() > .52
+      ? `rgba(30,63,25,${a})`
+      : `rgba(164,178,96,${a})`;
+    const s = 1 + Math.random()*3;
+    ctx.fillRect(Math.random()*1024, Math.random()*1024, s, s);
   }
 
-  const texture =
-    new THREE.CanvasTexture(
-      canvas
-    );
+  for (let i=0;i<600;i++) {
+    ctx.strokeStyle = `rgba(30,65,25,${.04 + Math.random()*.08})`;
+    ctx.lineWidth = .5 + Math.random();
+    const x = Math.random()*1024;
+    const y = Math.random()*1024;
+    ctx.beginPath();
+    ctx.moveTo(x,y);
+    ctx.lineTo(x + (Math.random()-.5)*7, y - 7 - Math.random()*12);
+    ctx.stroke();
+  }
 
-  texture.wrapS =
-    THREE.RepeatWrapping;
-
-  texture.wrapT =
-    THREE.RepeatWrapping;
-
-  texture.repeat.set(
-    36,
-    36
-  );
-
-  texture.colorSpace =
-    THREE.SRGBColorSpace;
-
-  return texture;
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(36,36);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
+  return tex;
 }
 
+const groundMat = new THREE.MeshStandardMaterial({
+  map: makeGroundTexture(),
+  roughness: .98,
+  metalness: 0
+});
 
-const ground =
-  new THREE.Mesh(
-    new THREE.PlaneGeometry(
-      200,
-      200
-    ),
-    new THREE.MeshStandardMaterial({
-      map:
-        createGrassTexture(),
-      roughness:
-        .98
-    })
-  );
-
-
-ground.rotation.x =
-  -Math.PI / 2;
-
-
-ground.receiveShadow =
-  true;
-
-
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(220,220),
+  groundMat
+);
+ground.rotation.x = -Math.PI/2;
+ground.receiveShadow = true;
 scene.add(ground);
 
-
 /* =========================================================
-   HILLS
+   GRASS TUFTS
 ========================================================= */
 
-function addHill(
-  x,
-  z,
-  width,
-  height,
-  depth,
-  color
-) {
+const bladeGeo = new THREE.ConeGeometry(.025, .28, 3);
+const bladeMat = new THREE.MeshStandardMaterial({
+  color: 0x557d3f,
+  roughness: 1
+});
 
-  const hill =
-    new THREE.Mesh(
-      new THREE.SphereGeometry(
-        1,
-        60,
-        40
-      ),
-      new THREE.MeshStandardMaterial({
-        color,
-        roughness: 1
-      })
-    );
+const bladeCount = 1800;
+const grass = new THREE.InstancedMesh(bladeGeo, bladeMat, bladeCount);
+grass.castShadow = false;
+grass.receiveShadow = true;
 
-  hill.scale.set(
-    width,
-    height,
-    depth
+const grassDummy = new THREE.Object3D();
+for (let i=0;i<bladeCount;i++) {
+  const x = (Math.random()-.5)*70;
+  const z = (Math.random()-.5)*70;
+  if (Math.abs(x) < 8 && z < -13 && z > -22) continue;
+
+  grassDummy.position.set(x, .13, z);
+  grassDummy.rotation.y = Math.random()*Math.PI*2;
+  const s = .55 + Math.random()*1.25;
+  grassDummy.scale.set(s,s,s);
+  grassDummy.updateMatrix();
+  grass.setMatrixAt(i, grassDummy.matrix);
+}
+scene.add(grass);
+
+/* =========================================================
+   DISTANT HILLS
+========================================================= */
+
+function addHill(x,z,sx,sy,sz,color) {
+  const hill = new THREE.Mesh(
+    new THREE.SphereGeometry(1,36,24),
+    new THREE.MeshStandardMaterial({ color, roughness:1 })
   );
-
-  hill.position.set(
-    x,
-    -height * .36,
-    z
-  );
-
+  hill.scale.set(sx,sy,sz);
+  hill.position.set(x,-sy*.45,z);
+  hill.receiveShadow = true;
   scene.add(hill);
 }
 
-
-addHill(
-  -28,-47,22,7,13,0x648552
-);
-
-addHill(
-  8,-55,30,8,16,0x678959
-);
-
-addHill(
-  40,-48,22,6,13,0x607f50
-);
-
+addHill(-32,-55,26,8,14,0x668653);
+addHill(4,-62,32,10,18,0x668c58);
+addHill(40,-54,24,7,14,0x5c7f4b);
 
 /* =========================================================
-   WALL
+   RANGE BUILDINGS / BARRIERS
 ========================================================= */
 
-const wall =
-  new THREE.Mesh(
-    new THREE.BoxGeometry(
-      13,
-      6,
-      .45
-    ),
-    new THREE.MeshStandardMaterial({
-      color:
-        0xb3aca1,
-      roughness:
-        .88
-    })
-  );
+const concreteMat = new THREE.MeshStandardMaterial({
+  color: 0xaaa79e,
+  roughness: .92
+});
 
+const darkConcreteMat = new THREE.MeshStandardMaterial({
+  color: 0x77766f,
+  roughness: .95
+});
 
-wall.position.set(
-  0,
-  3,
-  -18
+const woodMat = new THREE.MeshStandardMaterial({
+  color: 0x795334,
+  roughness: .9
+});
+
+const wall = new THREE.Mesh(
+  new THREE.BoxGeometry(14,6,.55),
+  concreteMat
 );
-
-
-wall.receiveShadow =
-  true;
-
-
+wall.position.set(0,3,-20);
+wall.castShadow = true;
+wall.receiveShadow = true;
 scene.add(wall);
 
+const wallCap = new THREE.Mesh(
+  new THREE.BoxGeometry(14.35,.22,.78),
+  darkConcreteMat
+);
+wallCap.position.set(0,6.08,-20);
+wallCap.castShadow = true;
+scene.add(wallCap);
+
+for (const x of [-8.2,8.2]) {
+  const side = new THREE.Mesh(
+    new THREE.BoxGeometry(2.5,4.2,.5),
+    concreteMat
+  );
+  side.position.set(x,2.1,-20.6);
+  side.rotation.y = x < 0 ? -.22 : .22;
+  side.castShadow = true;
+  side.receiveShadow = true;
+  scene.add(side);
+}
+
+for (const x of [-5.4,5.4]) {
+  const benchTop = new THREE.Mesh(
+    new THREE.BoxGeometry(2.8,.18,1.05),
+    woodMat
+  );
+  benchTop.position.set(x,.88,-7.5);
+  benchTop.castShadow = true;
+  scene.add(benchTop);
+
+  for (const lx of [-1,1]) {
+    const leg = new THREE.Mesh(
+      new THREE.BoxGeometry(.14,.82,.14),
+      darkConcreteMat
+    );
+    leg.position.set(x + lx*1.05,.42,-7.5);
+    leg.castShadow = true;
+    scene.add(leg);
+  }
+}
 
 /* =========================================================
    TARGET
 ========================================================= */
 
-const target =
-  new THREE.Group();
-
-
-target.position.set(
-  0,
-  2.8,
-  -17.755
-);
-
-
+const target = new THREE.Group();
+target.position.set(0,2.85,-19.70);
 scene.add(target);
 
-
-const targetBacking =
-  new THREE.Mesh(
-    new THREE.CircleGeometry(
-      1.42,
-      128
-    ),
-    new THREE.MeshStandardMaterial({
-      color:
-        0x3d3832,
-      roughness:
-        .88
-    })
-  );
-
-
-targetBacking.position.z =
-  -.015;
-
-
-target.add(
-  targetBacking
+const targetBoard = new THREE.Mesh(
+  new THREE.BoxGeometry(3.25,3.25,.09),
+  new THREE.MeshStandardMaterial({
+    color: 0xe5e0d4,
+    roughness: .84
+  })
 );
+targetBoard.castShadow = true;
+targetBoard.receiveShadow = true;
+target.add(targetBoard);
 
+const targetSurface = new THREE.Group();
+targetSurface.position.z = .052;
+target.add(targetSurface);
 
 [
-  [1.32,0xeee9df],
-  [1.08,0x242526],
-  [.86,0xeee9df],
-  [.63,0xbd302d],
-  [.40,0xeee9df],
-  [.19,0xd72824]
-]
-.forEach(
-  (data,index) => {
+  [1.35,0xf2efe8],
+  [1.10,0x252628],
+  [.86,0xf2efe8],
+  [.63,0xc73932],
+  [.40,0xf2efe8],
+  [.20,0xd92521]
+].forEach(([r,color],i)=>{
+  const circle = new THREE.Mesh(
+    new THREE.CircleGeometry(r,96),
+    new THREE.MeshStandardMaterial({
+      color,
+      roughness:.83,
+      side:THREE.DoubleSide
+    })
+  );
+  circle.position.z = i*.0015;
+  targetSurface.add(circle);
+});
 
-    const ring =
-      new THREE.Mesh(
-        new THREE.CircleGeometry(
-          data[0],
-          128
-        ),
-        new THREE.MeshStandardMaterial({
-          color:
-            data[1],
-          roughness:
-            .8,
-          side:
-            THREE.DoubleSide
-        })
-      );
-
-    ring.position.z =
-      index * .0025;
-
-    target.add(ring);
-  }
+const post1 = new THREE.Mesh(
+  new THREE.BoxGeometry(.12,2.05,.12),
+  woodMat
 );
+post1.position.set(-1.05,-2.58,-.1);
+post1.castShadow = true;
+target.add(post1);
 
+const post2 = post1.clone();
+post2.position.x = 1.05;
+target.add(post2);
 
 /* =========================================================
    TREES
 ========================================================= */
 
-const trunkMaterial =
-  new THREE.MeshStandardMaterial({
-    color:
-      0x654623,
-    roughness:
-      1
-  });
+const trunkMat = new THREE.MeshStandardMaterial({
+  color:0x674626,
+  roughness:1
+});
 
+const leafMat = new THREE.MeshStandardMaterial({
+  color:0x42763c,
+  roughness:.96
+});
 
-const foliageMaterial =
-  new THREE.MeshStandardMaterial({
-    color:
-      0x42783b,
-    roughness:
-      .96
-  });
+function addTree(x,z,s=1) {
+  const tree = new THREE.Group();
 
-
-function addTree(
-  x,
-  z,
-  scale
-) {
-
-  const tree =
-    new THREE.Group();
-
-  const trunk =
-    new THREE.Mesh(
-      new THREE.CylinderGeometry(
-        .13 * scale,
-        .22 * scale,
-        2.8 * scale,
-        32
-      ),
-      trunkMaterial
-    );
-
-  trunk.position.y =
-    1.4 * scale;
-
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(.13*s,.23*s,2.9*s,12),
+    trunkMat
+  );
+  trunk.position.y = 1.45*s;
+  trunk.castShadow = true;
   tree.add(trunk);
 
-  const leaves =
-    new THREE.Mesh(
-      new THREE.SphereGeometry(
-        .95 * scale,
-        36,
-        28
-      ),
-      foliageMaterial
-    );
-
-  leaves.position.y =
-    3.25 * scale;
-
-  leaves.scale.y =
-    1.15;
-
-  tree.add(leaves);
-
-  tree.position.set(
-    x,
-    0,
-    z
+  const crown1 = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(.9*s,2),
+    leafMat
   );
+  crown1.position.set(0,3.1*s,0);
+  crown1.castShadow = true;
+  tree.add(crown1);
 
+  const crown2 = crown1.clone();
+  crown2.scale.set(.78,.75,.78);
+  crown2.position.set(.45*s,3.35*s,.1*s);
+  tree.add(crown2);
+
+  const crown3 = crown1.clone();
+  crown3.scale.set(.72,.8,.72);
+  crown3.position.set(-.42*s,3.45*s,-.12*s);
+  tree.add(crown3);
+
+  tree.position.set(x,0,z);
   scene.add(tree);
 }
 
-
-addTree(-9,-21,1.15);
-addTree(9,-22,1.1);
-addTree(-15,-29,1.5);
-addTree(15,-31,1.35);
-addTree(-20,-40,1.7);
-addTree(20,-42,1.65);
-
+[
+  [-11,-25,1.15],[11,-25,1.15],
+  [-17,-33,1.45],[18,-34,1.35],
+  [-23,-43,1.65],[24,-44,1.55],
+  [-31,-28,1.25],[32,-31,1.35]
+].forEach(t=>addTree(...t));
 
 /* =========================================================
-   MATERIALS
+   WEAPON MATERIALS
 ========================================================= */
 
-const slideMaterial =
-  new THREE.MeshPhysicalMaterial({
-    color:
-      0x222629,
-    metalness:
-      .59,
-    roughness:
-      .25,
-    clearcoat:
-      .20
-  });
+const fallbackSlideMat = new THREE.MeshPhysicalMaterial({
+  color:0x24282a,
+  metalness:.65,
+  roughness:.24,
+  clearcoat:.18
+});
 
+const fallbackPolymerMat = new THREE.MeshPhysicalMaterial({
+  color:0x101314,
+  metalness:.02,
+  roughness:.7
+});
 
-const polymerMaterial =
-  new THREE.MeshPhysicalMaterial({
-    color:
-      0x101314,
-    metalness:
-      .02,
-    roughness:
-      .72
-  });
+const darkMetal = new THREE.MeshStandardMaterial({
+  color:0x060708,
+  metalness:.8,
+  roughness:.22
+});
 
+const skinMat = new THREE.MeshPhysicalMaterial({
+  color:0xc98a66,
+  roughness:.73,
+  clearcoat:.025
+});
 
-const darkMetal =
-  new THREE.MeshStandardMaterial({
-    color:
-      0x07090a,
-    metalness:
-      .79,
-    roughness:
-      .23
-  });
+const brassMat = new THREE.MeshStandardMaterial({
+  color:0xc99a3c,
+  metalness:.88,
+  roughness:.25
+});
 
-
-const magazineMaterial =
-  new THREE.MeshPhysicalMaterial({
-    color:
-      0x171a1b,
-    metalness:
-      .40,
-    roughness:
-      .38
-  });
-
-
-const brassMaterial =
-  new THREE.MeshStandardMaterial({
-    color:
-      0xcb9a3a,
-    metalness:
-      .85,
-    roughness:
-      .27
-  });
-
-
-const skinMaterial =
-  new THREE.MeshPhysicalMaterial({
-    color:
-      0xc98a66,
-    roughness:
-      .76,
-    clearcoat:
-      .025,
-    clearcoatRoughness:
-      .70
-  });
-
+const magazineMat = new THREE.MeshStandardMaterial({
+  color:0x16191a,
+  metalness:.45,
+  roughness:.35
+});
 
 /* =========================================================
-   PROFILE HELPER
+   WEAPON RIG
 ========================================================= */
 
-function extrudeProfile(
-  shape,
-  width,
-  material,
-  bevel
-) {
+const weaponRig = new THREE.Group();
+camera.add(weaponRig);
 
-  const geometry =
-    new THREE.ExtrudeGeometry(
-      shape,
-      {
-        depth:
-          width,
-        bevelEnabled:
-          true,
-        bevelSegments:
-          10,
-        bevelSize:
-          bevel,
-        bevelThickness:
-          bevel,
-        curveSegments:
-          36
+const weaponRoot = new THREE.Group();
+weaponRig.add(weaponRoot);
+
+const weaponVisual = new THREE.Group();
+weaponRoot.add(weaponVisual);
+
+const weaponEffects = new THREE.Group();
+weaponRoot.add(weaponEffects);
+
+const MODEL_PATH = './models/pistol.glb';
+
+let realWeapon = null;
+let fallbackWeapon = null;
+let realModelLoaded = false;
+
+/* =========================================================
+   FALLBACK PISTOL
+========================================================= */
+
+function makeFallbackPistol() {
+  const g = new THREE.Group();
+
+  const slide = new THREE.Mesh(
+    new THREE.BoxGeometry(.12,.105,.62),
+    fallbackSlideMat
+  );
+  slide.position.set(0,.06,-.16);
+  slide.geometry.translate(0,0,-.08);
+  slide.castShadow = true;
+  g.add(slide);
+
+  const frame = new THREE.Mesh(
+    new THREE.BoxGeometry(.105,.085,.42),
+    fallbackPolymerMat
+  );
+  frame.position.set(0,-.03,-.02);
+  frame.castShadow = true;
+  g.add(frame);
+
+  const grip = new THREE.Mesh(
+    new THREE.BoxGeometry(.105,.40,.15),
+    fallbackPolymerMat
+  );
+  grip.position.set(0,-.23,.075);
+  grip.rotation.x = -.11;
+  grip.castShadow = true;
+  g.add(grip);
+
+  const barrel = new THREE.Mesh(
+    new THREE.CylinderGeometry(.03,.03,.47,32),
+    darkMetal
+  );
+  barrel.rotation.x = Math.PI/2;
+  barrel.position.set(0,.06,-.28);
+  g.add(barrel);
+
+  const muzzle = new THREE.Mesh(
+    new THREE.TorusGeometry(.032,.006,12,32),
+    darkMetal
+  );
+  muzzle.position.set(0,.06,-.505);
+  g.add(muzzle);
+
+  const hand = new THREE.Mesh(
+    new THREE.SphereGeometry(1,40,32),
+    skinMat
+  );
+  hand.scale.set(.11,.18,.145);
+  hand.position.set(0,-.14,.13);
+  g.add(hand);
+
+  g.userData.slide = slide;
+  return g;
+}
+
+fallbackWeapon = makeFallbackPistol();
+weaponVisual.add(fallbackWeapon);
+
+/* =========================================================
+   GLB MODEL LOADING
+========================================================= */
+
+function normalizeLoadedWeapon(model) {
+  model.updateMatrixWorld(true);
+
+  const box = new THREE.Box3().setFromObject(model);
+  const size = new THREE.Vector3();
+  const center = new THREE.Vector3();
+
+  box.getSize(size);
+  box.getCenter(center);
+
+  const maxAxis = Math.max(size.x,size.y,size.z) || 1;
+
+  // Normalize the model to a predictable size.
+  const desiredLength = .68;
+  const scale = desiredLength / maxAxis;
+  model.scale.setScalar(scale);
+
+  // Recalculate after scaling.
+  model.updateMatrixWorld(true);
+  const box2 = new THREE.Box3().setFromObject(model);
+  const center2 = new THREE.Vector3();
+  box2.getCenter(center2);
+
+  // Move its center near the weapon origin.
+  model.position.sub(center2);
+
+  // Most downloaded gun models use different axes.
+  // These defaults put the longest dimension roughly down -Z.
+  model.rotation.set(0, Math.PI, 0);
+
+  model.traverse(obj=>{
+    if (obj.isMesh) {
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+
+      if (obj.material) {
+        obj.material.envMapIntensity = 1.0;
+        obj.material.needsUpdate = true;
       }
-    );
-
-  geometry.center();
-
-  geometry.rotateY(
-    Math.PI / 2
-  );
-
-  geometry.computeVertexNormals();
-
-  const mesh =
-    new THREE.Mesh(
-      geometry,
-      material
-    );
-
-  mesh.castShadow =
-    true;
-
-  return mesh;
+    }
+  });
 }
 
-
-/* =========================================================
-   WEAPON
-========================================================= */
-
-const weaponRig =
-  new THREE.Group();
-
-
-camera.add(
-  weaponRig
-);
-
-
-const gun =
-  new THREE.Group();
-
-
-weaponRig.add(
-  gun
-);
-
-
-/* =========================================================
-   SLIDE
-========================================================= */
-
-function makeSlideShape() {
-
-  const shape =
-    new THREE.Shape();
-
-  shape.moveTo(
-    -.275,
-    -.055
-  );
-
-  shape.quadraticCurveTo(
-    -.270,
-    -.069,
-    -.245,
-    -.073
-  );
-
-  shape.lineTo(
-    .245,
-    -.073
-  );
-
-  shape.quadraticCurveTo(
-    .275,
-    -.067,
-    .280,
-    -.040
-  );
-
-  shape.lineTo(
-    .267,
-    .050
-  );
-
-  shape.quadraticCurveTo(
-    .260,
-    .072,
-    .228,
-    .075
-  );
-
-  shape.lineTo(
-    -.235,
-    .075
-  );
-
-  shape.quadraticCurveTo(
-    -.264,
-    .071,
-    -.271,
-    .047
-  );
-
-  shape.closePath();
-
-  return shape;
-}
-
-
-const slideGroup =
-  new THREE.Group();
-
-
-gun.add(
-  slideGroup
-);
-
-
-const slide =
-  extrudeProfile(
-    makeSlideShape(),
-    .067,
-    slideMaterial,
-    .006
-  );
-
-
-slide.position.set(
-  0,
-  .095,
-  -.185
-);
-
-
-slideGroup.add(
-  slide
-);
-
-
-/* =========================================================
-   FRAME / GRIP
-========================================================= */
-
-function makeFrameShape() {
-
-  const shape =
-    new THREE.Shape();
-
-  shape.moveTo(
-    -.215,
-    .030
-  );
-
-  shape.lineTo(
-    .225,
-    .030
-  );
-
-  shape.quadraticCurveTo(
-    .248,
-    .025,
-    .248,
-    .002
-  );
-
-  shape.lineTo(
-    .232,
-    -.036
-  );
-
-  shape.lineTo(
-    .125,
-    -.044
-  );
-
-  shape.lineTo(
-    .020,
-    -.100
-  );
-
-  shape.lineTo(
-    -.038,
-    -.326
-  );
-
-  shape.quadraticCurveTo(
-    -.046,
-    -.349,
-    -.070,
-    -.352
-  );
-
-  shape.lineTo(
-    -.132,
-    -.352
-  );
-
-  shape.quadraticCurveTo(
-    -.154,
-    -.345,
-    -.157,
-    -.320
-  );
-
-  shape.quadraticCurveTo(
-    -.172,
-    -.210,
-    -.159,
-    -.104
-  );
-
-  shape.quadraticCurveTo(
-    -.154,
-    -.043,
-    -.180,
-    .030
-  );
-
-  shape.closePath();
-
-  return shape;
-}
-
-
-const frame =
-  extrudeProfile(
-    makeFrameShape(),
-    .063,
-    polymerMaterial,
-    .006
-  );
-
-
-frame.position.set(
-  0,
-  -.055,
-  -.005
-);
-
-
-gun.add(frame);
-
-
-/* =========================================================
-   BARREL / MUZZLE
-========================================================= */
-
-const barrel =
-  new THREE.Mesh(
-    new THREE.CylinderGeometry(
-      .036,
-      .036,
-      .515,
-      48
-    ),
-    darkMetal
-  );
-
-
-barrel.rotation.x =
-  Math.PI / 2;
-
-
-barrel.position.set(
-  0,
-  .094,
-  -.27
-);
-
-
-gun.add(barrel);
-
-
-const muzzle =
-  new THREE.Mesh(
-    new THREE.TorusGeometry(
-      .038,
-      .006,
-      18,
-      48
-    ),
-    darkMetal
-  );
-
-
-muzzle.position.set(
-  0,
-  .094,
-  -.548
-);
-
-
-gun.add(muzzle);
-
-
-const bore =
-  new THREE.Mesh(
-    new THREE.CircleGeometry(
-      .029,
-      48
-    ),
-    new THREE.MeshBasicMaterial({
-      color:
-        0x000000
-    })
-  );
-
-
-bore.position.set(
-  0,
-  .094,
-  -.557
-);
-
-
-gun.add(bore);
-
-
-/* =========================================================
-   SLIDE DETAILS
-========================================================= */
-
-const ejectionPort =
-  new THREE.Mesh(
-    new THREE.BoxGeometry(
-      .060,
-      .006,
-      .112
-    ),
-    new THREE.MeshStandardMaterial({
-      color:
-        0x030404,
-      roughness:
-        .72
-    })
-  );
-
-
-ejectionPort.position.set(
-  .034,
-  .168,
-  -.12
-);
-
-
-slideGroup.add(
-  ejectionPort
-);
-
-
-for (
-  let i = 0;
-  i < 7;
-  i++
-) {
-
-  const serration =
-    new THREE.Mesh(
-      new THREE.BoxGeometry(
-        .0028,
-        .060,
-        .009
-      ),
-      darkMetal
-    );
-
-  serration.position.set(
-    .034,
-    .101,
-    .024 + i * .019
-  );
-
-  slideGroup.add(
-    serration
-  );
-}
-
-
-/* =========================================================
-   SIGHTS
-========================================================= */
-
-const frontSight =
-  new THREE.Mesh(
-    new THREE.BoxGeometry(
-      .022,
-      .037,
-      .040
-    ),
-    darkMetal
-  );
-
-
-frontSight.position.set(
-  0,
-  .189,
-  -.455
-);
-
-
-slideGroup.add(
-  frontSight
-);
-
-
-function addRearSight(x) {
-
-  const sight =
-    new THREE.Mesh(
-      new THREE.BoxGeometry(
-        .024,
-        .039,
-        .034
-      ),
-      darkMetal
-    );
-
-  sight.position.set(
-    x,
-    .191,
-    .043
-  );
-
-  slideGroup.add(
-    sight
-  );
-}
-
-
-addRearSight(-.037);
-addRearSight(.037);
-
-
-/* =========================================================
-   TRIGGER GUARD
-========================================================= */
-
-const guardFrameConnector =
-  new THREE.Mesh(
-    new THREE.BoxGeometry(
-      .064,
-      .046,
-      .105
-    ),
-    polymerMaterial
-  );
-
-
-guardFrameConnector.position.set(
-  0,
-  -.010,
-  -.145
-);
-
-
-guardFrameConnector.rotation.x =
-  -.08;
-
-
-gun.add(
-  guardFrameConnector
-);
-
-
-class TriggerGuardCurve
-extends THREE.Curve {
-
-  getPoint(
-    t,
-    target =
-      new THREE.Vector3()
-  ) {
-
-    const points = [
-
-      new THREE.Vector3(
-        0,.018,-.176
-      ),
-
-      new THREE.Vector3(
-        0,-.006,-.188
-      ),
-
-      new THREE.Vector3(
-        0,-.038,-.171
-      ),
-
-      new THREE.Vector3(
-        0,-.062,-.132
-      ),
-
-      new THREE.Vector3(
-        0,-.071,-.090
-      ),
-
-      new THREE.Vector3(
-        0,-.061,-.052
-      ),
-
-      new THREE.Vector3(
-        0,-.039,-.022
-      ),
-
-      new THREE.Vector3(
-        0,-.008,.006
-      )
-
-    ];
-
-    return new THREE
-      .CatmullRomCurve3(
-        points
-      )
-      .getPoint(
-        t,
-        target
-      );
+const gltfLoader = new GLTFLoader();
+
+gltfLoader.load(
+  MODEL_PATH,
+  gltf => {
+    realWeapon = gltf.scene;
+    normalizeLoadedWeapon(realWeapon);
+    weaponVisual.add(realWeapon);
+
+    fallbackWeapon.visible = false;
+    realModelLoaded = true;
+
+    modelStatus.textContent = 'Weapon: real GLB model loaded';
+  },
+  undefined,
+  err => {
+    console.warn('pistol.glb not found. Using fallback pistol.', err);
+    fallbackWeapon.visible = true;
+    realModelLoaded = false;
+    modelStatus.textContent = 'Weapon: fallback (add models/pistol.glb)';
   }
-}
-
-
-const triggerGuard =
-  new THREE.Mesh(
-    new THREE.TubeGeometry(
-      new TriggerGuardCurve(),
-      96,
-      .011,
-      20,
-      false
-    ),
-    polymerMaterial
-  );
-
-
-gun.add(triggerGuard);
-
+);
 
 /* =========================================================
-   TRIGGER
+   WEAPON EFFECT ANCHORS
 ========================================================= */
 
-const triggerPivot =
-  new THREE.Group();
-
-
-triggerPivot.position.set(
-  0,
-  .016,
-  -.087
-);
-
-
-gun.add(
-  triggerPivot
-);
-
-
-const trigger =
-  new THREE.Mesh(
-    new THREE.CapsuleGeometry(
-      .0068,
-      .046,
-      10,
-      18
-    ),
-    darkMetal
-  );
-
-
-trigger.position.y =
-  -.024;
-
-
-trigger.rotation.x =
-  -.18;
-
-
-triggerPivot.add(
-  trigger
-);
-
-
-/* =========================================================
-   SHOOTING HAND
-========================================================= */
-
-const shootingHand =
-  new THREE.Mesh(
-    new THREE.SphereGeometry(
-      1,
-      64,
-      48
-    ),
-    skinMaterial
-  );
-
-
-shootingHand.scale.set(
-  .110,
-  .178,
-  .142
-);
-
-
-shootingHand.position.set(
-  0,
-  -.118,
-  .118
-);
-
-
-shootingHand.rotation.x =
-  .018;
-
-
-gun.add(
-  shootingHand
-);
-
-
-/* =========================================================
-   MAGAZINES
-========================================================= */
-
-const MAG_HEIGHT =
-  .20;
-
-
-const MAG_START_Y =
-  -.67;
-
-
-const MAG_ALIGN_Y =
-  -.48;
-
-
-const MAG_FULLY_INSERTED_Y =
-  -.20;
-
-
-const MAG_Z =
-  .020;
-
-
-function createMagazine() {
-
-  const group =
-    new THREE.Group();
-
-
-  const body =
-    new THREE.Mesh(
-      new THREE.BoxGeometry(
-        .038,
-        MAG_HEIGHT,
-        .046
-      ),
-      magazineMaterial
-    );
-
-
-  group.add(body);
-
-
-  const base =
-    new THREE.Mesh(
-      new THREE.BoxGeometry(
-        .047,
-        .010,
-        .055
-      ),
-      magazineMaterial
-    );
-
-
-  base.position.y =
-    -MAG_HEIGHT / 2 - .004;
-
-
-  group.add(base);
-
-
-  return group;
-}
-
-
-const oldMagazine =
-  createMagazine();
-
-
-oldMagazine.visible =
-  false;
-
-
-oldMagazine.position.set(
-  0,
-  MAG_FULLY_INSERTED_Y,
-  MAG_Z
-);
-
-
-gun.add(
-  oldMagazine
-);
-
-
-const freshMagazine =
-  createMagazine();
-
-
-freshMagazine.visible =
-  false;
-
-
-freshMagazine.position.set(
-  0,
-  MAG_START_Y,
-  MAG_Z
-);
-
-
-gun.add(
-  freshMagazine
-);
-
-
-/* =========================================================
-   RELOAD HAND
-========================================================= */
-
-const leftHand =
-  new THREE.Mesh(
-    new THREE.SphereGeometry(
-      1,
-      56,
-      42
-    ),
-    skinMaterial
-  );
-
-
-leftHand.scale.set(
-  .090,
-  .130,
-  .080
-);
-
-
-leftHand.visible =
-  false;
-
-
-gun.add(
-  leftHand
-);
-
-
-/* =========================================================
-   MUZZLE / EJECTION ANCHORS
-========================================================= */
-
-const muzzleAnchor =
-  new THREE.Object3D();
-
-
-muzzleAnchor.position.set(
-  0,
-  .094,
-  -.595
-);
-
-
-gun.add(
-  muzzleAnchor
-);
-
-
-const ejectAnchor =
-  new THREE.Object3D();
-
-
-ejectAnchor.position.set(
-  .080,
-  .15,
-  -.10
-);
-
-
-gun.add(
-  ejectAnchor
-);
-
+const muzzleAnchor = new THREE.Object3D();
+muzzleAnchor.position.set(0,.055,-.55);
+weaponEffects.add(muzzleAnchor);
+
+const ejectAnchor = new THREE.Object3D();
+ejectAnchor.position.set(.075,.11,-.08);
+weaponEffects.add(ejectAnchor);
 
 /* =========================================================
    MUZZLE FLASH
 ========================================================= */
 
 function makeFlashTexture() {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 128;
+  const ctx = c.getContext('2d');
 
-  const canvas =
-    document.createElement(
-      "canvas"
-    );
+  const g = ctx.createRadialGradient(64,64,1,64,64,62);
+  g.addColorStop(0,'rgba(255,255,255,1)');
+  g.addColorStop(.15,'rgba(255,248,185,1)');
+  g.addColorStop(.38,'rgba(255,165,30,.92)');
+  g.addColorStop(.75,'rgba(255,70,0,.25)');
+  g.addColorStop(1,'rgba(255,60,0,0)');
 
-
-  canvas.width = 128;
-  canvas.height = 128;
-
-
-  const ctx =
-    canvas.getContext("2d");
-
-
-  const gradient =
-    ctx.createRadialGradient(
-      64,64,2,
-      64,64,61
-    );
-
-
-  gradient.addColorStop(
-    0,
-    "rgba(255,255,255,1)"
-  );
-
-
-  gradient.addColorStop(
-    .15,
-    "rgba(255,248,175,1)"
-  );
-
-
-  gradient.addColorStop(
-    .38,
-    "rgba(255,164,28,.9)"
-  );
-
-
-  gradient.addColorStop(
-    .72,
-    "rgba(255,65,0,.30)"
-  );
-
-
-  gradient.addColorStop(
-    1,
-    "rgba(255,55,0,0)"
-  );
-
-
-  ctx.fillStyle =
-    gradient;
-
-
-  ctx.fillRect(
-    0,
-    0,
-    128,
-    128
-  );
-
-
-  return new THREE.CanvasTexture(
-    canvas
-  );
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,128,128);
+  return new THREE.CanvasTexture(c);
 }
 
-
-const flash =
-  new THREE.Sprite(
-    new THREE.SpriteMaterial({
-      map:
-        makeFlashTexture(),
-      transparent:
-        true,
-      blending:
-        THREE.AdditiveBlending,
-      depthWrite:
-        false
-    })
-  );
-
-
-flash.scale.set(
-  .28,
-  .28,
-  .28
+const muzzleFlash = new THREE.Sprite(
+  new THREE.SpriteMaterial({
+    map:makeFlashTexture(),
+    transparent:true,
+    blending:THREE.AdditiveBlending,
+    depthWrite:false
+  })
 );
+muzzleFlash.scale.set(.26,.26,.26);
+muzzleFlash.visible = false;
+muzzleAnchor.add(muzzleFlash);
 
-
-flash.visible =
-  false;
-
-
-muzzleAnchor.add(
-  flash
-);
-
-
-const muzzleLight =
-  new THREE.PointLight(
-    0xffa229,
-    0,
-    2.6
-  );
-
-
-muzzleAnchor.add(
-  muzzleLight
-);
-
+const muzzleLight = new THREE.PointLight(0xff9d28,0,2.4);
+muzzleAnchor.add(muzzleLight);
 
 /* =========================================================
-   PLAYER
+   MAGAZINE / RELOAD HAND
+========================================================= */
+
+function createMagazine() {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(.04,.20,.05),
+    magazineMat
+  );
+  body.castShadow = true;
+  g.add(body);
+
+  const base = new THREE.Mesh(
+    new THREE.BoxGeometry(.05,.012,.06),
+    magazineMat
+  );
+  base.position.y = -.106;
+  base.castShadow = true;
+  g.add(base);
+  return g;
+}
+
+const oldMagazine = createMagazine();
+oldMagazine.visible = false;
+weaponRoot.add(oldMagazine);
+
+const freshMagazine = createMagazine();
+freshMagazine.visible = false;
+weaponRoot.add(freshMagazine);
+
+const reloadHand = new THREE.Mesh(
+  new THREE.SphereGeometry(1,36,28),
+  skinMat
+);
+reloadHand.scale.set(.09,.13,.08);
+reloadHand.visible = false;
+weaponRoot.add(reloadHand);
+
+/* =========================================================
+   PLAYER STATE
 ========================================================= */
 
 const player = {
-  x: 0,
-  z: 1,
-  height: 1.68,
-  ammo: 12,
-  score: 0
+  x:0,
+  z:1,
+  eyeHeight:1.68,
+  ammo:12,
+  score:0
 };
-
-
-let yaw = 0;
-let pitch = 0;
-
-let recoilPitch = 0;
-let recoilYaw = 0;
-
-let ads = false;
-
-let currentFov = 71;
-let targetFov = 71;
 
 const keys = {};
 
-const mouseSensitivity =
-  .00235;
+let yaw = 0;
+let pitch = 0;
+let ads = false;
+let pointerLocked = false;
 
-let triggerPull = 0;
+let currentFov = 72;
+let targetFov = 72;
 
+let recoilPitch = 0;
+let recoilYaw = 0;
+let weaponKick = 0;
+let weaponTilt = 0;
+
+const mouseSensitivity = .00225;
 
 /* =========================================================
-   POINTER LOCK CAMERA
-
-   THIS IS THE IMPORTANT CAMERA FIX.
-
-   The mouse cursor is no longer tracked by its position
-   on the physical screen.
-
-   Once locked, movementX and movementY tell us how far the
-   mouse moved, even if you rotate continuously forever.
+   POINTER LOCK
 ========================================================= */
 
-let pointerLocked =
-  false;
+renderer.domElement.addEventListener('mousedown', e=>{
+  if (e.button !== 0) return;
 
-
-function requestGamePointerLock() {
-
-  ensureAudio();
-
-
-  if (
-    document.pointerLockElement ===
-    renderer.domElement
-  ) {
+  if (document.pointerLockElement !== renderer.domElement) {
+    renderer.domElement.requestPointerLock();
     return;
   }
 
+  fire();
+});
 
-  if (
-    renderer.domElement.requestPointerLock
-  ) {
+document.addEventListener('pointerlockchange', ()=>{
+  pointerLocked = document.pointerLockElement === renderer.domElement;
+  document.body.classList.toggle('locked', pointerLocked);
 
-    renderer.domElement.requestPointerLock();
-
+  if (!pointerLocked) {
+    setADS(false);
   }
+});
 
-}
+document.addEventListener('mousemove', e=>{
+  if (!pointerLocked) return;
 
+  yaw -= e.movementX * mouseSensitivity;
+  pitch -= e.movementY * mouseSensitivity;
 
-/*
-  Clicking the game while NOT locked captures the mouse.
-
-  Clicking while ALREADY locked fires the pistol.
-*/
-
-renderer.domElement.addEventListener(
-  "mousedown",
-  e => {
-
-    if (
-      e.button !==
-      0
-    ) {
-      return;
-    }
-
-
-    ensureAudio();
-
-
-    if (
-      document.pointerLockElement !==
-      renderer.domElement
-    ) {
-
-      requestGamePointerLock();
-
-      return;
-
-    }
-
-
-    fire();
-
-  }
-);
-
-
-/*
-  Browser fires this whenever mouse capture begins or ends.
-
-  Pressing ESC automatically releases pointer lock.
-*/
-
-document.addEventListener(
-  "pointerlockchange",
-  () => {
-
-    pointerLocked =
-      document.pointerLockElement ===
-      renderer.domElement;
-
-
-    document.body.classList.toggle(
-      "controlled",
-      pointerLocked
-    );
-
-
-    /*
-      Prevent an ADS state from remaining stuck if
-      ESC was pressed while SHIFT was being held.
-    */
-
-    if (
-      !pointerLocked
-    ) {
-
-      setADS(false);
-
-    }
-
-  }
-);
-
-
-/*
-  If pointer lock fails, make sure UI doesn't falsely
-  claim the mouse is captured.
-*/
-
-document.addEventListener(
-  "pointerlockerror",
-  () => {
-
-    pointerLocked =
-      false;
-
-
-    document.body.classList.remove(
-      "controlled"
-    );
-
-
-    showMessage(
-      "CLICK AGAIN TO LOCK MOUSE"
-    );
-
-  }
-);
-
-
-/*
-  THIS replaces the old cursor-position camera system.
-
-  movementX / movementY contain raw relative mouse motion.
-
-  There is NO cursor position and therefore NO screen edge.
-*/
-
-document.addEventListener(
-  "mousemove",
-  e => {
-
-    if (
-      !pointerLocked
-    ) {
-      return;
-    }
-
-
-    yaw -=
-      e.movementX *
-      mouseSensitivity;
-
-
-    pitch -=
-      e.movementY *
-      mouseSensitivity;
-
-
-    /*
-      Left/right remains unlimited.
-
-      yaw is NEVER clamped.
-
-      You can therefore spin around continuously.
-    */
-
-
-    /*
-      Vertical view stops just short of mathematically
-      flipping the camera upside-down.
-
-      This still lets you look almost perfectly straight
-      up and straight down.
-    */
-
-    pitch =
-      THREE.MathUtils.clamp(
-        pitch,
-        -Math.PI / 2 + .015,
-        Math.PI / 2 - .015
-      );
-
-  }
-);
-
+  pitch = THREE.MathUtils.clamp(
+    pitch,
+    -Math.PI/2 + .015,
+    Math.PI/2 - .015
+  );
+});
 
 /* =========================================================
    KEYBOARD
 ========================================================= */
 
-document.addEventListener(
-  "keydown",
-  e => {
+document.addEventListener('keydown', e=>{
+  keys[e.code] = true;
 
-    ensureAudio();
-
-
-    keys[e.code] =
-      true;
-
-
-    if (
-      e.code === "ShiftLeft" ||
-      e.code === "ShiftRight"
-    ) {
-
-      e.preventDefault();
-
-
-      setADS(
-        true
-      );
-
-    }
-
-
-    if (
-      e.code ===
-      "KeyR"
-    ) {
-
-      e.preventDefault();
-
-
-      startReload();
-
-    }
-
-
-    /*
-      We intentionally DO NOT manually handle Escape.
-
-      The browser's Pointer Lock API handles ESC itself,
-      which releases the mouse correctly and safely.
-    */
-
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+    e.preventDefault();
+    setADS(true);
   }
-);
 
-
-document.addEventListener(
-  "keyup",
-  e => {
-
-    keys[e.code] =
-      false;
-
-
-    if (
-      e.code === "ShiftLeft" ||
-      e.code === "ShiftRight"
-    ) {
-
-      setADS(
-        false
-      );
-
-    }
-
+  if (e.code === 'KeyR') {
+    e.preventDefault();
+    startReload();
   }
-);
+});
 
+document.addEventListener('keyup', e=>{
+  keys[e.code] = false;
+
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+    setADS(false);
+  }
+});
 
 /* =========================================================
    ADS
 ========================================================= */
 
 function setADS(value) {
+  if (reloading) value = false;
 
-  if (
-    reloading
-  ) {
-    value =
-      false;
+  ads = value;
+  targetFov = ads ? 45 : 72;
+
+  document.body.classList.toggle('ads', ads);
+
+  if (!reloading) {
+    modeText.textContent = ads
+      ? 'ADS • TIGHT SPREAD'
+      : 'HIP FIRE';
   }
-
-
-  ads =
-    value;
-
-
-  targetFov =
-    ads
-      ? 45
-      : 71;
-
-
-  document.body.classList.toggle(
-    "ads",
-    ads
-  );
-
-
-  if (
-    !reloading
-  ) {
-
-    modeText.textContent =
-      ads
-        ? "ADS • TIGHT SPREAD"
-        : "HIP FIRE";
-
-  }
-
 }
 
-
 /* =========================================================
-   CAMERA
+   CAMERA / WEAPON POSE
 ========================================================= */
 
-function updateCamera() {
+const hipPos = new THREE.Vector3(.22,-.25,-1.05);
+const adsPos = new THREE.Vector3(0,-.145,-.82);
+const reloadPos = new THREE.Vector3(.24,-.23,-.96);
 
-  camera.position.set(
-    player.x,
-    player.height,
-    player.z
-  );
+function updateCamera(delta) {
+  camera.position.set(player.x,player.eyeHeight,player.z);
 
-
-  currentFov =
-    THREE.MathUtils.lerp(
-      currentFov,
-      targetFov,
-      .18
-    );
-
-
-  camera.fov =
-    currentFov;
-
-
-  camera.aspect =
-    innerWidth /
-    innerHeight;
-
-
+  const fovLerp = 1 - Math.exp(-10*delta);
+  currentFov = THREE.MathUtils.lerp(currentFov,targetFov,fovLerp);
+  camera.fov = currentFov;
   camera.updateProjectionMatrix();
 
-
-  camera.rotation.y =
-    yaw +
-    recoilYaw;
-
-
-  camera.rotation.x =
-    pitch +
-    recoilPitch;
-
+  camera.rotation.y = yaw + recoilYaw;
+  camera.rotation.x = pitch + recoilPitch;
 }
 
+function updateWeapon(delta) {
+  const target = reloading ? reloadPos : ads ? adsPos : hipPos;
+  weaponRig.position.lerp(target,1-Math.exp(-13*delta));
 
-/* =========================================================
-   WEAPON POSITION
-========================================================= */
+  const targetScale = ads ? .72 : reloading ? .58 : .54;
+  const scale = THREE.MathUtils.lerp(
+    weaponRig.scale.x || targetScale,
+    targetScale,
+    1-Math.exp(-12*delta)
+  );
+  weaponRig.scale.setScalar(scale);
 
-const hipPosition =
-  new THREE.Vector3(
-    .225,
-    -.245,
-    -1.12
+  const baseRoll = reloading ? -.28 : ads ? 0 : -.035;
+  weaponRig.rotation.z = THREE.MathUtils.lerp(
+    weaponRig.rotation.z,
+    baseRoll + weaponTilt,
+    1-Math.exp(-15*delta)
   );
 
-
-const adsPosition =
-  new THREE.Vector3(
-    0,
-    -.155,
-    -.90
+  weaponRig.rotation.y = THREE.MathUtils.lerp(
+    weaponRig.rotation.y,
+    reloading ? .16 : ads ? 0 : -.03,
+    1-Math.exp(-15*delta)
   );
 
-
-const reloadPosition =
-  new THREE.Vector3(
-    .27,
-    -.225,
-    -1.03
-  );
-
-
-let weaponKickBack = 0;
-let weaponKickUp = 0;
-let reloadShake = 0;
-
-
-function updateWeapon() {
-
-  const desiredPosition =
-    reloading
-      ? reloadPosition
-      : ads
-        ? adsPosition
-        : hipPosition;
-
-
-  weaponRig.position.lerp(
-    desiredPosition,
-    .22
-  );
-
-
-  const scale =
-    reloading
-      ? .51
-      : ads
-        ? .64
-        : .49;
-
-
-  weaponRig.scale.lerp(
-    new THREE.Vector3(
-      scale,
-      scale,
-      scale
-    ),
-    .18
-  );
-
-
-  const desiredRoll =
-    reloading
-      ? -.38
-      : ads
-        ? 0
-        : -.018;
-
-
-  weaponRig.rotation.z =
-    THREE.MathUtils.lerp(
-      weaponRig.rotation.z,
-      desiredRoll +
-      reloadShake,
-      .24
-    );
-
-
-  const desiredYaw =
-    reloading
-      ? .18
-      : ads
-        ? 0
-        : -.035;
-
-
-  weaponRig.rotation.y =
-    THREE.MathUtils.lerp(
-      weaponRig.rotation.y,
-      desiredYaw,
-      .22
-    );
-
-
-  if (
-    !reloading
-  ) {
-
-    gun.position.z =
-      weaponKickBack;
-
-
-    gun.rotation.x =
-      weaponKickUp;
-
-  }
-
+  weaponRoot.position.z = weaponKick;
 }
-
-
-/* =========================================================
-   TRIGGER ANIMATION
-========================================================= */
-
-function updateTrigger(delta) {
-
-  triggerPull =
-    THREE.MathUtils.lerp(
-      triggerPull,
-      0,
-      1 -
-      Math.exp(
-        -18 * delta
-      )
-    );
-
-
-  triggerPivot.rotation.x =
-    -triggerPull *
-    .38;
-
-}
-
 
 /* =========================================================
    MOVEMENT
@@ -2906,540 +1108,104 @@ function updateTrigger(delta) {
 let joystickX = 0;
 let joystickY = 0;
 
-
 function updateMovement(delta) {
-
   let forward = 0;
-  let sideways = 0;
+  let side = 0;
 
+  if (keys.KeyW) forward++;
+  if (keys.KeyS) forward--;
+  if (keys.KeyA) side--;
+  if (keys.KeyD) side++;
 
-  if (
-    keys["KeyW"]
-  ) {
-    forward++;
+  forward += -joystickY;
+  side += joystickX;
+
+  const length = Math.hypot(forward,side);
+  if (length > 1) {
+    forward /= length;
+    side /= length;
   }
 
+  const speed = reloading ? 1.8 : ads ? 2.35 : 3.85;
 
-  if (
-    keys["KeyS"]
-  ) {
-    forward--;
-  }
+  const fx = -Math.sin(yaw);
+  const fz = -Math.cos(yaw);
+  const rx = Math.cos(yaw);
+  const rz = -Math.sin(yaw);
 
-
-  if (
-    keys["KeyA"]
-  ) {
-    sideways--;
-  }
-
-
-  if (
-    keys["KeyD"]
-  ) {
-    sideways++;
-  }
-
-
-  forward +=
-    -joystickY;
-
-
-  sideways +=
-    joystickX;
-
-
-  const length =
-    Math.hypot(
-      forward,
-      sideways
-    );
-
-
-  if (
-    length > 1
-  ) {
-
-    forward /=
-      length;
-
-
-    sideways /=
-      length;
-
-  }
-
-
-  const speed =
-    reloading
-      ? 1.8
-      : ads
-        ? 2.3
-        : 3.8;
-
-
-  const forwardX =
-    -Math.sin(yaw);
-
-
-  const forwardZ =
-    -Math.cos(yaw);
-
-
-  const rightX =
-    Math.cos(yaw);
-
-
-  const rightZ =
-    -Math.sin(yaw);
-
-
-  player.x +=
-    (
-      forwardX * forward +
-      rightX * sideways
-    ) *
-    speed *
-    delta;
-
-
-  player.z +=
-    (
-      forwardZ * forward +
-      rightZ * sideways
-    ) *
-    speed *
-    delta;
-
+  player.x += (fx*forward + rx*side) * speed * delta;
+  player.z += (fz*forward + rz*side) * speed * delta;
 }
 
-
 /* =========================================================
-   MESSAGE
+   UI MESSAGE
 ========================================================= */
 
 let messageTimer = null;
 
-
 function showMessage(text) {
+  messageEl.textContent = text;
+  messageEl.classList.add('show');
 
-  bigMessage.textContent =
-    text;
-
-
-  bigMessage.classList.add(
-    "show"
-  );
-
-
-  clearTimeout(
-    messageTimer
-  );
-
-
-  messageTimer =
-    setTimeout(
-      () => {
-
-        bigMessage.classList.remove(
-          "show"
-        );
-
-      },
-      950
-    );
-
+  clearTimeout(messageTimer);
+  messageTimer = setTimeout(()=>{
+    messageEl.classList.remove('show');
+  },950);
 }
 
-
 /* =========================================================
-   SHOOTING
+   BULLET HOLES / RAYCASTING
 ========================================================= */
 
-const raycaster =
-  new THREE.Raycaster();
+const raycaster = new THREE.Raycaster();
+const shotPoint = new THREE.Vector2();
 
+const holes = [];
 
-const shotPoint =
-  new THREE.Vector2();
+const targetHoleMat = new THREE.MeshBasicMaterial({
+  color:0x17100d,
+  side:THREE.DoubleSide,
+  depthWrite:false,
+  polygonOffset:true,
+  polygonOffsetFactor:-8
+});
 
+const wallHoleMat = new THREE.MeshBasicMaterial({
+  color:0x201511,
+  side:THREE.DoubleSide,
+  depthWrite:false,
+  polygonOffset:true,
+  polygonOffsetFactor:-8
+});
 
-let slideKick = 0;
-let slideLocked = false;
-let flashTimer = 0;
-
-
-const bulletHoles = [];
-
-
-const targetHoleMaterial =
-  new THREE.MeshBasicMaterial({
-    color:
-      0x17100c,
-    side:
-      THREE.DoubleSide,
-    depthWrite:
-      false,
-    polygonOffset:
-      true,
-    polygonOffsetFactor:
-      -8
-  });
-
-
-const wallHoleMaterial =
-  new THREE.MeshBasicMaterial({
-    color:
-      0x201713,
-    side:
-      THREE.DoubleSide,
-    depthWrite:
-      false,
-    polygonOffset:
-      true,
-    polygonOffsetFactor:
-      -8
-  });
-
-
-function createBulletHole(hit) {
-
-  const onTarget =
-    target.children.includes(
-      hit.object
-    );
-
-
-  const hole =
-    new THREE.Mesh(
-      new THREE.CircleGeometry(
-        onTarget
-          ? .032
-          : .027,
-        24
-      ),
-      onTarget
-        ? targetHoleMaterial
-        : wallHoleMaterial
-    );
-
-
-  hole.position.copy(
-    hit.point
+function makeHole(hit,onTarget) {
+  const hole = new THREE.Mesh(
+    new THREE.CircleGeometry(onTarget ? .032 : .025,20),
+    onTarget ? targetHoleMat : wallHoleMat
   );
 
+  hole.position.copy(hit.point);
 
-  let normal =
-    new THREE.Vector3(
-      0,
-      0,
-      1
-    );
-
-
-  if (
-    hit.face
-  ) {
-
-    normal =
-      hit.face.normal.clone();
-
-
-    normal.transformDirection(
-      hit.object.matrixWorld
-    );
-
+  let normal = new THREE.Vector3(0,0,1);
+  if (hit.face) {
+    normal = hit.face.normal.clone();
+    normal.transformDirection(hit.object.matrixWorld);
   }
 
-
-  const q =
-    new THREE.Quaternion();
-
-
-  q.setFromUnitVectors(
-    new THREE.Vector3(
-      0,
-      0,
-      1
-    ),
+  hole.quaternion.setFromUnitVectors(
+    new THREE.Vector3(0,0,1),
     normal
   );
 
-
-  hole.quaternion.copy(q);
-
-
-  hole.position.addScaledVector(
-    normal,
-    .007
-  );
-
-
+  hole.position.addScaledVector(normal,.006);
   hole.renderOrder = 50;
-
-
   scene.add(hole);
 
-
-  bulletHoles.push(hole);
-
-
-  if (
-    bulletHoles.length > 200
-  ) {
-
-    const old =
-      bulletHoles.shift();
-
-
-    scene.remove(old);
-
+  holes.push(hole);
+  if (holes.length > 220) {
+    scene.remove(holes.shift());
   }
-
 }
-
-
-function fire() {
-
-  if (
-    reloading
-  ) {
-    return;
-  }
-
-
-  triggerPull = 1;
-
-
-  if (
-    player.ammo <= 0
-  ) {
-
-    soundEmpty();
-
-
-    showMessage(
-      "MAG EMPTY • RELOAD REQUIRED"
-    );
-
-
-    return;
-
-  }
-
-
-  soundGunshot();
-
-
-  player.ammo--;
-
-
-  ammoText.textContent =
-    player.ammo;
-
-
-  slideKick = .097;
-
-
-  if (
-    ads
-  ) {
-
-    weaponKickBack = .031;
-    weaponKickUp = .031;
-
-
-    recoilPitch +=
-      .008 +
-      Math.random() *
-      .003;
-
-
-    recoilYaw +=
-      (
-        Math.random() -
-        .5
-      ) *
-      .003;
-
-  }
-
-  else {
-
-    weaponKickBack = .052;
-    weaponKickUp = .052;
-
-
-    recoilPitch +=
-      .018 +
-      Math.random() *
-      .005;
-
-
-    recoilYaw +=
-      (
-        Math.random() -
-        .5
-      ) *
-      .007;
-
-  }
-
-
-  flashTimer = .043;
-
-
-  flash.visible = true;
-
-
-  muzzleLight.intensity = 6;
-
-
-  ejectCasing();
-
-
-  const spread =
-    ads
-      ? 4
-      : 34;
-
-
-  const angle =
-    Math.random() *
-    Math.PI *
-    2;
-
-
-  const radius =
-    Math.sqrt(
-      Math.random()
-    ) *
-    spread;
-
-
-  shotPoint.set(
-    Math.cos(angle) *
-    radius /
-    innerWidth *
-    2,
-
-    -Math.sin(angle) *
-    radius /
-    innerHeight *
-    2
-  );
-
-
-  raycaster.setFromCamera(
-    shotPoint,
-    camera
-  );
-
-
-  const hits =
-    raycaster.intersectObjects(
-      [
-        ...target.children,
-        wall,
-        ground
-      ],
-      false
-    );
-
-
-  if (
-    hits.length
-  ) {
-
-    const hit =
-      hits[0];
-
-
-    if (
-      hit.object !== ground
-    ) {
-
-      createBulletHole(hit);
-
-    }
-
-
-    if (
-      target.children.includes(
-        hit.object
-      )
-    ) {
-
-      scoreHit(
-        hit.point
-      );
-
-    }
-
-  }
-
-
-  if (
-    player.ammo === 0
-  ) {
-
-    slideLocked = true;
-
-  }
-
-}
-
-
-/* =========================================================
-   SCORE
-========================================================= */
-
-function scoreHit(point) {
-
-  const distance =
-    Math.hypot(
-      point.x -
-      target.position.x,
-      point.y -
-      target.position.y
-    );
-
-
-  let points;
-
-
-  if (distance <= .19) points = 10;
-  else if (distance <= .40) points = 8;
-  else if (distance <= .63) points = 6;
-  else if (distance <= .86) points = 4;
-  else if (distance <= 1.08) points = 2;
-  else points = 1;
-
-
-  player.score +=
-    points;
-
-
-  scoreText.textContent =
-    player.score;
-
-
-  hitMarker.style.display =
-    "block";
-
-
-  setTimeout(
-    () => {
-
-      hitMarker.style.display =
-        "none";
-
-    },
-    90
-  );
-
-}
-
 
 /* =========================================================
    CASINGS
@@ -3447,277 +1213,178 @@ function scoreHit(point) {
 
 const casings = [];
 
-
 function ejectCasing() {
-
-  const casing =
-    new THREE.Mesh(
-      new THREE.CylinderGeometry(
-        .009,
-        .009,
-        .035,
-        18
-      ),
-      brassMaterial
-    );
-
-
-  casing.rotation.x =
-    Math.PI / 2;
-
-
-  const position =
-    new THREE.Vector3();
-
-
-  ejectAnchor.getWorldPosition(
-    position
+  const casing = new THREE.Mesh(
+    new THREE.CylinderGeometry(.009,.009,.035,14),
+    brassMat
   );
 
+  casing.rotation.x = Math.PI/2;
 
-  casing.position.copy(
-    position
-  );
-
+  const p = new THREE.Vector3();
+  ejectAnchor.getWorldPosition(p);
+  casing.position.copy(p);
 
   scene.add(casing);
 
-
-  const velocity =
-    new THREE.Vector3(
-      .80 +
-      Math.random() *
-      .28,
-      1.08 +
-      Math.random() *
-      .34,
-      .10 +
-      Math.random() *
-      .22
-    );
-
-
-  velocity.applyQuaternion(
-    camera.quaternion
+  const velocity = new THREE.Vector3(
+    .9 + Math.random()*.25,
+    1.15 + Math.random()*.3,
+    .1 + Math.random()*.2
   );
-
+  velocity.applyQuaternion(camera.quaternion);
 
   casings.push({
-    mesh:
-      casing,
+    mesh:casing,
     velocity,
-    spin:
-      new THREE.Vector3(
-        14,
-        12,
-        15
-      ),
-    life:
-      1.7
+    spin:new THREE.Vector3(14,18,12),
+    life:1.5
   });
-
 }
-
 
 /* =========================================================
-   THROWN MAGAZINES
+   SIMPLE WEB AUDIO
 ========================================================= */
 
-const thrownMagazines = [];
+let audioCtx = null;
 
-
-function throwMagazineFrom(
-  sourceMagazine
-) {
-
-  const thrown =
-    createMagazine();
-
-
-  const worldPosition =
-    new THREE.Vector3();
-
-
-  sourceMagazine.getWorldPosition(
-    worldPosition
-  );
-
-
-  const worldQuaternion =
-    new THREE.Quaternion();
-
-
-  sourceMagazine.getWorldQuaternion(
-    worldQuaternion
-  );
-
-
-  thrown.position.copy(
-    worldPosition
-  );
-
-
-  thrown.quaternion.copy(
-    worldQuaternion
-  );
-
-
-  scene.add(thrown);
-
-
-  const velocity =
-    new THREE.Vector3(
-      -5.8,
-      2.4,
-      -.7
-    );
-
-
-  velocity.applyQuaternion(
-    camera.quaternion
-  );
-
-
-  thrownMagazines.push({
-    mesh:
-      thrown,
-    velocity,
-    spin:
-      new THREE.Vector3(
-        18,
-        24,
-        19
-      ),
-    life:
-      2.4
-  });
-
+function ensureAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
+function noiseBurst(duration=.04,volume=.45,frequency=900) {
+  ensureAudio();
+
+  const length = Math.ceil(audioCtx.sampleRate*duration);
+  const buffer = audioCtx.createBuffer(1,length,audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+
+  for (let i=0;i<length;i++) data[i] = Math.random()*2-1;
+
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = frequency;
+
+  const gain = audioCtx.createGain();
+  const now = audioCtx.currentTime;
+
+  gain.gain.setValueAtTime(volume,now);
+  gain.gain.exponentialRampToValueAtTime(.001,now+duration);
+
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  src.start(now);
+  src.stop(now+duration);
+}
+
+function soundShot() {
+  noiseBurst(.025,.9,2200);
+  setTimeout(()=>noiseBurst(.07,.28,620),7);
+}
+
+function soundClick() {
+  noiseBurst(.018,.16,3400);
+}
 
 /* =========================================================
-   OBJECT PHYSICS
+   FIRING
 ========================================================= */
 
-function updateLooseObjects(delta) {
+let muzzleTimer = 0;
+let slideKickTimer = 0;
 
-  for (
-    let i =
-      casings.length - 1;
-    i >= 0;
-    i--
-  ) {
+function fire() {
+  if (reloading) return;
 
-    const casing =
-      casings[i];
+  ensureAudio();
 
-
-    casing.velocity.y -=
-      5.8 * delta;
-
-
-    casing.mesh.position.addScaledVector(
-      casing.velocity,
-      delta
-    );
-
-
-    casing.mesh.rotation.x +=
-      casing.spin.x *
-      delta;
-
-
-    casing.mesh.rotation.y +=
-      casing.spin.y *
-      delta;
-
-
-    casing.mesh.rotation.z +=
-      casing.spin.z *
-      delta;
-
-
-    casing.life -= delta;
-
-
-    if (
-      casing.life <= 0
-    ) {
-
-      scene.remove(
-        casing.mesh
-      );
-
-
-      casings.splice(
-        i,
-        1
-      );
-
-    }
-
+  if (player.ammo <= 0) {
+    soundClick();
+    showMessage('MAG EMPTY • RELOAD REQUIRED');
+    return;
   }
 
+  player.ammo--;
+  ammoText.textContent = player.ammo;
 
-  for (
-    let i =
-      thrownMagazines.length - 1;
-    i >= 0;
-    i--
-  ) {
+  soundShot();
 
-    const mag =
-      thrownMagazines[i];
+  muzzleTimer = .045;
+  muzzleFlash.visible = true;
+  muzzleLight.intensity = 7;
 
+  slideKickTimer = .08;
+  weaponKick = ads ? .032 : .052;
 
-    mag.velocity.y -=
-      6.5 * delta;
+  recoilPitch += ads
+    ? .008 + Math.random()*.003
+    : .018 + Math.random()*.005;
 
+  recoilYaw += (Math.random()-.5) * (ads ? .003 : .007);
 
-    mag.mesh.position.addScaledVector(
-      mag.velocity,
-      delta
-    );
+  ejectCasing();
 
+  const spread = ads ? 4 : 34;
+  const a = Math.random()*Math.PI*2;
+  const r = Math.sqrt(Math.random())*spread;
 
-    mag.mesh.rotation.x +=
-      mag.spin.x *
-      delta;
+  shotPoint.set(
+    Math.cos(a)*r/window.innerWidth*2,
+    -Math.sin(a)*r/window.innerHeight*2
+  );
 
+  raycaster.setFromCamera(shotPoint,camera);
 
-    mag.mesh.rotation.y +=
-      mag.spin.y *
-      delta;
+  const hittables = [
+    ...targetSurface.children,
+    targetBoard,
+    wall,
+    ground
+  ];
 
+  const hits = raycaster.intersectObjects(hittables,false);
 
-    mag.mesh.rotation.z +=
-      mag.spin.z *
-      delta;
+  if (hits.length) {
+    const hit = hits[0];
+    const onTarget =
+      targetSurface.children.includes(hit.object) ||
+      hit.object === targetBoard;
 
-
-    mag.life -= delta;
-
-
-    if (
-      mag.life <= 0
-    ) {
-
-      scene.remove(
-        mag.mesh
-      );
-
-
-      thrownMagazines.splice(
-        i,
-        1
-      );
-
+    if (hit.object !== ground) {
+      makeHole(hit,onTarget);
     }
 
+    if (onTarget) scoreHit(hit.point);
   }
-
 }
 
+function scoreHit(point) {
+  const localPoint = point.clone();
+  target.worldToLocal(localPoint);
+
+  const d = Math.hypot(localPoint.x,localPoint.y);
+
+  let points = 1;
+  if (d <= .20) points = 10;
+  else if (d <= .40) points = 8;
+  else if (d <= .63) points = 6;
+  else if (d <= .86) points = 4;
+  else if (d <= 1.10) points = 2;
+
+  player.score += points;
+  scoreText.textContent = player.score;
+
+  hitMarker.style.display = 'block';
+  setTimeout(()=>hitMarker.style.display='none',90);
+}
 
 /* =========================================================
    RELOAD
@@ -3725,1441 +1392,378 @@ function updateLooseObjects(delta) {
 
 let reloading = false;
 let reloadStart = 0;
+const reloadDuration = 3.45;
 
-
-const RELOAD_LENGTH =
-  3.55;
-
-
-let magOutSoundPlayed = false;
-let oldMagThrown = false;
-let magInSoundPlayed = false;
-let slidePullPlayed = false;
-let slideReleasePlayed = false;
-
-
-const handHidden =
-  new THREE.Vector3(
-    -.34,
-    -.82,
-    .08
-  );
-
-
-const handOldMag =
-  new THREE.Vector3(
-    -.10,
-    -.37,
-    .06
-  );
-
-
-const handRip =
-  new THREE.Vector3(
-    -.14,
-    -.58,
-    .05
-  );
-
-
-const handThrow =
-  new THREE.Vector3(
-    -.50,
-    -.50,
-    .04
-  );
-
-
-const handFresh =
-  new THREE.Vector3(
-    -.15,
-    -.64,
-    .05
-  );
-
-
-const handAlign =
-  new THREE.Vector3(
-    -.08,
-    -.48,
-    .03
-  );
-
-
-const handSeat =
-  new THREE.Vector3(
-    -.05,
-    -.24,
-    .03
-  );
-
-
-const handSlideFront =
-  new THREE.Vector3(
-    -.07,
-    .11,
-    -.22
-  );
-
-
-const handSlideRear =
-  new THREE.Vector3(
-    -.16,
-    .09,
-    .02
-  );
-
-
-function clamp01(value) {
-
-  return THREE.MathUtils.clamp(
-    value,
-    0,
-    1
-  );
-
-}
-
-
-function smooth(value) {
-
-  const t =
-    clamp01(value);
-
-
-  return (
-    t *
-    t *
-    (
-      3 -
-      2 *
-      t
-    )
-  );
-
-}
-
-
-function snap(value) {
-
-  const t =
-    clamp01(value);
-
-
-  return (
-    1 -
-    Math.pow(
-      1 - t,
-      5
-    )
-  );
-
-}
-
-
-function moveBetween(
-  object,
-  start,
-  end,
-  amount
-) {
-
-  object.position.lerpVectors(
-    start,
-    end,
-    amount
-  );
-
-}
-
+const magInsertedY = -.20;
+const magAlignY = -.48;
 
 function startReload() {
-
-  if (
-    reloading ||
-    player.ammo === 12
-  ) {
-    return;
-  }
-
+  if (reloading || player.ammo === 12) return;
 
   setADS(false);
-
-
   reloading = true;
-
-
-  reloadStart =
-    performance.now() /
-    1000;
-
-
-  magOutSoundPlayed = false;
-  oldMagThrown = false;
-  magInSoundPlayed = false;
-  slidePullPlayed = false;
-  slideReleasePlayed = false;
-
-
-  modeText.textContent =
-    "RELOADING";
-
-
-  oldMagazine.visible =
-    true;
-
-
-  oldMagazine.position.set(
-    0,
-    MAG_FULLY_INSERTED_Y,
-    MAG_Z
-  );
-
-
-  freshMagazine.visible =
-    false;
-
-
-  freshMagazine.position.set(
-    0,
-    MAG_START_Y,
-    MAG_Z
-  );
-
-
-  leftHand.visible =
-    true;
-
-
-  leftHand.position.copy(
-    handHidden
-  );
-
-
-  leftHand.rotation.set(
-    0,
-    0,
-    0
-  );
-
-}
-
-
-function updateReload() {
-
-  if (
-    !reloading
-  ) {
-
-    reloadShake =
-      THREE.MathUtils.lerp(
-        reloadShake,
-        0,
-        .24
-      );
-
-
-    return;
-
-  }
-
-
-  const t =
-    performance.now() /
-    1000 -
-    reloadStart;
-
-
-  reloadShake = 0;
-
-
-  if (
-    t < .32
-  ) {
-
-    const p =
-      snap(
-        t / .32
-      );
-
-
-    moveBetween(
-      leftHand,
-      handHidden,
-      handOldMag,
-      p
-    );
-
-  }
-
-
-  else if (
-    t < .68
-  ) {
-
-    const p =
-      snap(
-        (
-          t - .32
-        ) /
-        .36
-      );
-
-
-    if (
-      !magOutSoundPlayed
-    ) {
-
-      magOutSoundPlayed =
-        true;
-
-
-      soundMagOut();
-
-    }
-
-
-    moveBetween(
-      leftHand,
-      handOldMag,
-      handRip,
-      p
-    );
-
-
-    oldMagazine.position.y =
-      THREE.MathUtils.lerp(
-        MAG_FULLY_INSERTED_Y,
-        -.49,
-        p
-      );
-
-
-    reloadShake =
-      Math.sin(
-        p *
-        Math.PI *
-        10
-      ) *
-      .025 *
-      (
-        1 - p
-      );
-
-  }
-
-
-  else if (
-    t < .88
-  ) {
-
-    const p =
-      snap(
-        (
-          t - .68
-        ) /
-        .20
-      );
-
-
-    if (
-      !oldMagThrown
-    ) {
-
-      oldMagThrown = true;
-
-
-      throwMagazineFrom(
-        oldMagazine
-      );
-
-
-      oldMagazine.visible =
-        false;
-
-    }
-
-
-    moveBetween(
-      leftHand,
-      handRip,
-      handThrow,
-      p
-    );
-
-
-    leftHand.rotation.z =
-      -p * .8;
-
-  }
-
-
-  else if (
-    t < 1.18
-  ) {
-
-    const p =
-      snap(
-        (
-          t - .88
-        ) /
-        .30
-      );
-
-
-    moveBetween(
-      leftHand,
-      handThrow,
-      handHidden,
-      p
-    );
-
-  }
-
-
-  else if (
-    t < 1.48
-  ) {
-
-    const p =
-      snap(
-        (
-          t - 1.18
-        ) /
-        .30
-      );
-
-
-    freshMagazine.visible =
-      true;
-
-
-    moveBetween(
-      leftHand,
-      handHidden,
-      handFresh,
-      p
-    );
-
-
-    freshMagazine.position.set(
-      THREE.MathUtils.lerp(
-        -.10,
-        0,
-        p
-      ),
-      THREE.MathUtils.lerp(
-        MAG_START_Y,
-        -.56,
-        p
-      ),
-      THREE.MathUtils.lerp(
-        .10,
-        MAG_Z,
-        p
-      )
-    );
-
-  }
-
-
-  else if (
-    t < 1.82
-  ) {
-
-    const p =
-      smooth(
-        (
-          t - 1.48
-        ) /
-        .34
-      );
-
-
-    moveBetween(
-      leftHand,
-      handFresh,
-      handAlign,
-      p
-    );
-
-
-    freshMagazine.position.set(
-      THREE.MathUtils.lerp(
-        -.03,
-        0,
-        p
-      ),
-      THREE.MathUtils.lerp(
-        -.56,
-        MAG_ALIGN_Y,
-        p
-      ),
-      MAG_Z
-    );
-
-
-    freshMagazine.rotation.z =
-      Math.sin(
-        p *
-        Math.PI *
-        4
-      ) *
-      .055 *
-      (
-        1 - p
-      );
-
-  }
-
-
-  else if (
-    t < 2.25
-  ) {
-
-    const p =
-      smooth(
-        (
-          t - 1.82
-        ) /
-        .43
-      );
-
-
-    moveBetween(
-      leftHand,
-      handAlign,
-      handSeat,
-      p
-    );
-
-
-    freshMagazine.visible =
-      true;
-
-
-    freshMagazine.position.x =
-      0;
-
-
-    freshMagazine.position.z =
-      MAG_Z;
-
-
-    freshMagazine.position.y =
-      THREE.MathUtils.lerp(
-        MAG_ALIGN_Y,
-        MAG_FULLY_INSERTED_Y,
-        p
-      );
-
-
-    freshMagazine.rotation.z =
-      Math.sin(
-        p *
-        Math.PI *
-        5
-      ) *
-      .035 *
-      (
-        1 - p
-      );
-
-
-    if (
-      p > .86
-    ) {
-
-      if (
-        !magInSoundPlayed
-      ) {
-
-        magInSoundPlayed =
-          true;
-
-
-        soundMagIn();
-
-      }
-
-
-      const impact =
-        (
-          p - .86
-        ) /
-        .14;
-
-
-      reloadShake =
-        Math.sin(
-          impact *
-          Math.PI *
-          7
-        ) *
-        .045 *
-        (
-          1 - impact
-        );
-
-    }
-
-  }
-
-
-  else if (
-    t < 2.52
-  ) {
-
-    const p =
-      snap(
-        (
-          t - 2.25
-        ) /
-        .27
-      );
-
-
-    freshMagazine.visible =
-      true;
-
-
-    freshMagazine.position.set(
-      0,
-      MAG_FULLY_INSERTED_Y,
-      MAG_Z
-    );
-
-
-    freshMagazine.rotation.set(
-      0,
-      0,
-      0
-    );
-
-
-    moveBetween(
-      leftHand,
-      handSeat,
-      handSlideFront,
-      p
-    );
-
-
-    leftHand.rotation.x =
-      -p *
-      .45;
-
-  }
-
-
-  else if (
-    t < 2.86
-  ) {
-
-    const p =
-      snap(
-        (
-          t - 2.52
-        ) /
-        .34
-      );
-
-
-    freshMagazine.visible =
-      true;
-
-
-    freshMagazine.position.set(
-      0,
-      MAG_FULLY_INSERTED_Y,
-      MAG_Z
-    );
-
-
-    if (
-      !slidePullPlayed
-    ) {
-
-      slidePullPlayed =
-        true;
-
-
-      soundSlidePull();
-
-    }
-
-
-    moveBetween(
-      leftHand,
-      handSlideFront,
-      handSlideRear,
-      p
-    );
-
-
-    slideGroup.position.z =
-      THREE.MathUtils.lerp(
-        0,
-        .158,
-        p
-      );
-
-
-    gun.rotation.x =
-      -p *
-      .085;
-
-
-    gun.rotation.z =
-      -p *
-      .16;
-
-  }
-
-
-  else if (
-    t < 3.02
-  ) {
-
-    const p =
-      snap(
-        (
-          t - 2.86
-        ) /
-        .16
-      );
-
-
-    freshMagazine.visible =
-      true;
-
-
-    freshMagazine.position.set(
-      0,
-      MAG_FULLY_INSERTED_Y,
-      MAG_Z
-    );
-
-
-    if (
-      !slideReleasePlayed
-    ) {
-
-      slideReleasePlayed =
-        true;
-
-
-      soundSlideRelease();
-
-    }
-
-
-    slideGroup.position.z =
-      THREE.MathUtils.lerp(
-        .158,
-        0,
-        p
-      );
-
-
-    reloadShake =
-      Math.sin(
-        p *
-        Math.PI *
-        8
-      ) *
-      .035 *
-      (
-        1 - p
-      );
-
-  }
-
-
-  else if (
-    t < RELOAD_LENGTH
-  ) {
-
-    const p =
-      snap(
-        (
-          t - 3.02
-        ) /
-        (
-          RELOAD_LENGTH -
-          3.02
-        )
-      );
-
-
-    freshMagazine.visible =
-      true;
-
-
-    freshMagazine.position.set(
-      0,
-      MAG_FULLY_INSERTED_Y,
-      MAG_Z
-    );
-
-
-    moveBetween(
-      leftHand,
-      handSlideRear,
-      handHidden,
-      p
-    );
-
-
-    gun.rotation.x =
-      THREE.MathUtils.lerp(
-        gun.rotation.x,
-        0,
-        .25
-      );
-
-
-    gun.rotation.z =
-      THREE.MathUtils.lerp(
-        gun.rotation.z,
-        0,
-        .25
-      );
-
-  }
-
-
-  else {
-
-    finishReload();
-
-  }
-
-}
-
-
-function finishReload() {
-
-  reloading = false;
-
-
-  leftHand.visible = false;
-
-
-  leftHand.rotation.set(
-    0,
-    0,
-    0
-  );
-
-
-  oldMagazine.visible = false;
-
+  reloadStart = performance.now()/1000;
+  modeText.textContent = 'RELOADING';
+
+  oldMagazine.visible = true;
+  oldMagazine.position.set(0,magInsertedY,.03);
 
   freshMagazine.visible = false;
+  freshMagazine.position.set(0,-.70,.03);
 
+  reloadHand.visible = true;
+  reloadHand.position.set(-.34,-.82,.08);
+}
 
-  slideLocked = false;
+function ease(t) {
+  t = THREE.MathUtils.clamp(t,0,1);
+  return t*t*(3-2*t);
+}
 
+function reloadLerp(obj,a,b,p) {
+  obj.position.lerpVectors(a,b,ease(p));
+}
 
-  slideKick = 0;
+function updateReload() {
+  if (!reloading) return;
 
+  const t = performance.now()/1000 - reloadStart;
 
-  slideGroup.position.z = 0;
+  const hidden = new THREE.Vector3(-.34,-.82,.08);
+  const oldGrab = new THREE.Vector3(-.08,-.34,.06);
+  const rip = new THREE.Vector3(-.14,-.57,.05);
+  const throwPos = new THREE.Vector3(-.48,-.48,.05);
+  const freshGrab = new THREE.Vector3(-.14,-.64,.05);
+  const align = new THREE.Vector3(-.07,-.47,.03);
+  const seat = new THREE.Vector3(-.04,-.23,.03);
+  const slideFront = new THREE.Vector3(-.07,.12,-.22);
+  const slideRear = new THREE.Vector3(-.16,.09,.02);
 
+  if (t < .30) {
+    reloadLerp(reloadHand,hidden,oldGrab,t/.30);
+  }
+  else if (t < .66) {
+    const p = (t-.30)/.36;
+    reloadLerp(reloadHand,oldGrab,rip,p);
+    oldMagazine.position.y = THREE.MathUtils.lerp(magInsertedY,-.50,ease(p));
+  }
+  else if (t < .88) {
+    const p = (t-.66)/.22;
+    reloadLerp(reloadHand,rip,throwPos,p);
+    oldMagazine.visible = false;
+  }
+  else if (t < 1.15) {
+    reloadLerp(reloadHand,throwPos,hidden,(t-.88)/.27);
+  }
+  else if (t < 1.48) {
+    const p = (t-1.15)/.33;
+    freshMagazine.visible = true;
+    reloadLerp(reloadHand,hidden,freshGrab,p);
+    freshMagazine.position.set(
+      THREE.MathUtils.lerp(-.1,0,ease(p)),
+      THREE.MathUtils.lerp(-.70,-.56,ease(p)),
+      .03
+    );
+  }
+  else if (t < 1.80) {
+    const p = (t-1.48)/.32;
+    reloadLerp(reloadHand,freshGrab,align,p);
+    freshMagazine.position.set(
+      THREE.MathUtils.lerp(-.03,0,ease(p)),
+      THREE.MathUtils.lerp(-.56,magAlignY,ease(p)),
+      .03
+    );
+  }
+  else if (t < 2.23) {
+    const p = (t-1.80)/.43;
+    reloadLerp(reloadHand,align,seat,p);
 
-  gun.position.set(
-    0,
-    0,
-    0
-  );
+    // The magazine visibly travels all the way into the grip.
+    freshMagazine.position.set(
+      0,
+      THREE.MathUtils.lerp(magAlignY,magInsertedY,ease(p)),
+      .03
+    );
 
+    weaponTilt =
+      Math.sin(ease(p)*Math.PI*7) *
+      .025 *
+      (1-ease(p));
+  }
+  else if (t < 2.50) {
+    freshMagazine.position.set(0,magInsertedY,.03);
+    reloadLerp(reloadHand,seat,slideFront,(t-2.23)/.27);
+  }
+  else if (t < 2.84) {
+    freshMagazine.position.set(0,magInsertedY,.03);
+    reloadLerp(reloadHand,slideFront,slideRear,(t-2.50)/.34);
 
-  gun.rotation.set(
-    0,
-    0,
-    0
-  );
+    // Generic visual rack: move entire weapon visual a little.
+    weaponVisual.position.z = THREE.MathUtils.lerp(
+      0,
+      .10,
+      ease((t-2.50)/.34)
+    );
+  }
+  else if (t < 3.00) {
+    freshMagazine.position.set(0,magInsertedY,.03);
+    weaponVisual.position.z = THREE.MathUtils.lerp(
+      .10,
+      0,
+      ease((t-2.84)/.16)
+    );
+  }
+  else if (t < reloadDuration) {
+    freshMagazine.position.set(0,magInsertedY,.03);
+    reloadLerp(reloadHand,slideRear,hidden,(t-3.00)/(reloadDuration-3.00));
+  }
+  else {
+    finishReload();
+  }
+}
 
+function finishReload() {
+  reloading = false;
 
-  reloadShake = 0;
+  oldMagazine.visible = false;
+  freshMagazine.visible = false;
+  reloadHand.visible = false;
 
+  weaponVisual.position.set(0,0,0);
+  weaponTilt = 0;
 
   player.ammo = 12;
-
-
   ammoText.textContent = 12;
-
-
-  modeText.textContent =
-    "HIP FIRE";
-
+  modeText.textContent = 'HIP FIRE';
 }
-
 
 /* =========================================================
-   RECOIL
+   RECOIL / EFFECT UPDATES
 ========================================================= */
 
-function updateRecoil() {
+function updateEffects(delta) {
+  recoilPitch = THREE.MathUtils.lerp(
+    recoilPitch,
+    0,
+    1-Math.exp(-9*delta)
+  );
 
-  const recovery =
-    ads
-      ? .17
-      : .115;
+  recoilYaw = THREE.MathUtils.lerp(
+    recoilYaw,
+    0,
+    1-Math.exp(-10*delta)
+  );
 
+  weaponKick = THREE.MathUtils.lerp(
+    weaponKick,
+    0,
+    1-Math.exp(-13*delta)
+  );
 
-  recoilPitch =
-    THREE.MathUtils.lerp(
-      recoilPitch,
-      0,
-      recovery
-    );
-
-
-  recoilYaw =
-    THREE.MathUtils.lerp(
-      recoilYaw,
-      0,
-      recovery
-    );
-
-
-  if (
-    !reloading
-  ) {
-
-    if (
-      slideLocked
-    ) {
-
-      slideGroup.position.z =
-        THREE.MathUtils.lerp(
-          slideGroup.position.z,
-          .085,
-          .20
-        );
-
-    }
-
-    else {
-
-      slideKick =
-        THREE.MathUtils.lerp(
-          slideKick,
-          0,
-          .27
-        );
-
-
-      slideGroup.position.z =
-        slideKick;
-
-    }
-
+  if (muzzleTimer > 0) {
+    muzzleTimer -= delta;
+    const s = .8 + Math.random()*.35;
+    muzzleFlash.scale.set(.26*s,.26*s,.26*s);
+    muzzleFlash.material.rotation = Math.random()*Math.PI;
+    muzzleLight.intensity = 5 + Math.random()*3;
+  } else {
+    muzzleFlash.visible = false;
+    muzzleLight.intensity = 0;
   }
 
+  if (slideKickTimer > 0) {
+    slideKickTimer -= delta;
 
-  weaponKickBack =
-    THREE.MathUtils.lerp(
-      weaponKickBack,
-      0,
-      .18
-    );
+    // Fallback slide animates separately if present.
+    if (fallbackWeapon && fallbackWeapon.userData.slide) {
+      fallbackWeapon.userData.slide.position.z =
+        -.16 + Math.sin((slideKickTimer/.08)*Math.PI)*.10;
+    }
+  } else if (fallbackWeapon && fallbackWeapon.userData.slide) {
+    fallbackWeapon.userData.slide.position.z = -.16;
+  }
 
-
-  weaponKickUp =
-    THREE.MathUtils.lerp(
-      weaponKickUp,
-      0,
-      .15
-    );
-
+  weaponTilt = THREE.MathUtils.lerp(
+    weaponTilt,
+    0,
+    1-Math.exp(-12*delta)
+  );
 }
-
 
 /* =========================================================
-   FLASH
+   LOOSE OBJECTS
 ========================================================= */
 
-function updateFlash(delta) {
+function updateCasings(delta) {
+  for (let i=casings.length-1;i>=0;i--) {
+    const c = casings[i];
 
-  if (
-    flashTimer > 0
-  ) {
+    c.velocity.y -= 6.2*delta;
+    c.mesh.position.addScaledVector(c.velocity,delta);
 
-    flashTimer -= delta;
+    c.mesh.rotation.x += c.spin.x*delta;
+    c.mesh.rotation.y += c.spin.y*delta;
+    c.mesh.rotation.z += c.spin.z*delta;
 
+    c.life -= delta;
 
-    const pulse =
-      .82 +
-      Math.random() *
-      .30;
-
-
-    flash.scale.set(
-      .28 * pulse,
-      .28 * pulse,
-      .28 * pulse
-    );
-
-
-    flash.material.rotation =
-      Math.random() *
-      Math.PI;
-
-
-    muzzleLight.intensity =
-      4 +
-      Math.random() *
-      4;
-
+    if (c.life <= 0) {
+      scene.remove(c.mesh);
+      casings.splice(i,1);
+    }
   }
-
-  else {
-
-    flash.visible =
-      false;
-
-
-    muzzleLight.intensity =
-      0;
-
-  }
-
 }
-
 
 /* =========================================================
    MOBILE LOOK
-
-   Pointer lock is desktop-only.
-
-   Touch controls remain separate.
 ========================================================= */
 
-let lookTouch =
-  null;
+let lookTouch = null;
+let touchX = 0;
+let touchY = 0;
 
-
-let touchLookX =
-  0;
-
-let touchLookY =
-  0;
-
-
-renderer.domElement.addEventListener(
-  "touchstart",
-  e => {
-
-    for (
-      const touch
-      of e.changedTouches
-    ) {
-
-      if (
-        touch.clientX >
-        innerWidth *
-        .34
-      ) {
-
-        lookTouch =
-          touch.identifier;
-
-
-        touchLookX =
-          touch.clientX;
-
-
-        touchLookY =
-          touch.clientY;
-
-
-        break;
-
-      }
-
+renderer.domElement.addEventListener('touchstart',e=>{
+  for (const touch of e.changedTouches) {
+    if (touch.clientX > window.innerWidth*.34) {
+      lookTouch = touch.identifier;
+      touchX = touch.clientX;
+      touchY = touch.clientY;
+      break;
     }
-
-  },
-  {
-    passive: false
   }
-);
+},{passive:false});
 
+renderer.domElement.addEventListener('touchmove',e=>{
+  for (const touch of e.changedTouches) {
+    if (touch.identifier === lookTouch) {
+      const dx = touch.clientX-touchX;
+      const dy = touch.clientY-touchY;
 
-renderer.domElement.addEventListener(
-  "touchmove",
-  e => {
+      yaw -= dx*.006;
+      pitch -= dy*.006;
 
-    for (
-      const touch
-      of e.changedTouches
-    ) {
+      pitch = THREE.MathUtils.clamp(
+        pitch,
+        -Math.PI/2+.015,
+        Math.PI/2-.015
+      );
 
-      if (
-        touch.identifier ===
-        lookTouch
-      ) {
-
-        const dx =
-          touch.clientX -
-          touchLookX;
-
-
-        const dy =
-          touch.clientY -
-          touchLookY;
-
-
-        yaw -=
-          dx * .006;
-
-
-        pitch -=
-          dy * .006;
-
-
-        pitch =
-          THREE.MathUtils.clamp(
-            pitch,
-            -Math.PI / 2 + .015,
-            Math.PI / 2 - .015
-          );
-
-
-        touchLookX =
-          touch.clientX;
-
-
-        touchLookY =
-          touch.clientY;
-
-
-        e.preventDefault();
-
-      }
-
+      touchX = touch.clientX;
+      touchY = touch.clientY;
+      e.preventDefault();
     }
-
-  },
-  {
-    passive: false
   }
-);
-
+},{passive:false});
 
 /* =========================================================
    MOBILE JOYSTICK
 ========================================================= */
 
-const joystick =
-  document.getElementById(
-    "joystick"
-  );
+const joystick = document.getElementById('joystick');
+const stick = document.getElementById('stick');
 
-
-const stick =
-  document.getElementById(
-    "stick"
-  );
-
-
-let joystickTouch =
-  null;
-
-
-joystick.addEventListener(
-  "touchstart",
-  e => {
-
-    const touch =
-      e.changedTouches[0];
-
-
-    joystickTouch =
-      touch.identifier;
-
-
-    moveJoystick(
-      touch
-    );
-
-
-    e.preventDefault();
-
-  }
-);
-
-
-joystick.addEventListener(
-  "touchmove",
-  e => {
-
-    for (
-      const touch
-      of e.changedTouches
-    ) {
-
-      if (
-        touch.identifier ===
-        joystickTouch
-      ) {
-
-        moveJoystick(
-          touch
-        );
-
-
-        e.preventDefault();
-
-      }
-
-    }
-
-  }
-);
-
-
-joystick.addEventListener(
-  "touchend",
-  () => {
-
-    joystickX = 0;
-    joystickY = 0;
-
-
-    stick.style.left =
-      "35px";
-
-
-    stick.style.top =
-      "35px";
-
-  }
-);
-
+let joystickTouch = null;
 
 function moveJoystick(touch) {
+  const rect = joystick.getBoundingClientRect();
 
-  const rect =
-    joystick.getBoundingClientRect();
+  let x = touch.clientX-rect.left-60;
+  let y = touch.clientY-rect.top-60;
 
+  const len = Math.hypot(x,y);
 
-  let x =
-    touch.clientX -
-    rect.left -
-    60;
-
-
-  let y =
-    touch.clientY -
-    rect.top -
-    60;
-
-
-  const length =
-    Math.hypot(
-      x,
-      y
-    );
-
-
-  if (
-    length > 40
-  ) {
-
-    x =
-      x /
-      length *
-      40;
-
-
-    y =
-      y /
-      length *
-      40;
-
+  if (len > 40) {
+    x = x/len*40;
+    y = y/len*40;
   }
 
+  joystickX = x/40;
+  joystickY = y/40;
 
-  joystickX =
-    x / 40;
-
-
-  joystickY =
-    y / 40;
-
-
-  stick.style.left =
-    35 +
-    x +
-    "px";
-
-
-  stick.style.top =
-    35 +
-    y +
-    "px";
-
+  stick.style.left = `${35+x}px`;
+  stick.style.top = `${35+y}px`;
 }
 
+joystick.addEventListener('touchstart',e=>{
+  const touch = e.changedTouches[0];
+  joystickTouch = touch.identifier;
+  moveJoystick(touch);
+  e.preventDefault();
+},{passive:false});
+
+joystick.addEventListener('touchmove',e=>{
+  for (const touch of e.changedTouches) {
+    if (touch.identifier === joystickTouch) {
+      moveJoystick(touch);
+      e.preventDefault();
+    }
+  }
+},{passive:false});
+
+joystick.addEventListener('touchend',()=>{
+  joystickTouch = null;
+  joystickX = 0;
+  joystickY = 0;
+  stick.style.left = '35px';
+  stick.style.top = '35px';
+});
 
 /* =========================================================
    MOBILE FIRE / ADS
 ========================================================= */
 
-document
-  .getElementById(
-    "fireButton"
-  )
-  .addEventListener(
-    "touchstart",
-    e => {
+document.getElementById('fireButton').addEventListener('touchstart',e=>{
+  e.preventDefault();
+  fire();
+},{passive:false});
 
-      ensureAudio();
+const adsButton = document.getElementById('adsButton');
 
+adsButton.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  setADS(true);
+},{passive:false});
 
-      e.preventDefault();
-
-
-      fire();
-
-    }
-  );
-
-
-const adsButton =
-  document.getElementById(
-    "adsButton"
-  );
-
-
-adsButton.addEventListener(
-  "touchstart",
-  e => {
-
-    e.preventDefault();
-
-
-    setADS(true);
-
-  }
-);
-
-
-adsButton.addEventListener(
-  "touchend",
-  e => {
-
-    e.preventDefault();
-
-
-    setADS(false);
-
-  }
-);
-
+adsButton.addEventListener('touchend',e=>{
+  e.preventDefault();
+  setADS(false);
+},{passive:false});
 
 /* =========================================================
    RESIZE
 ========================================================= */
 
-window.addEventListener(
-  "resize",
-  () => {
+window.addEventListener('resize',()=>{
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(window.innerWidth,window.innerHeight);
 
-    renderer.setSize(
-      innerWidth,
-      innerHeight
-    );
-
-
-    renderer.setPixelRatio(
-      Math.min(
-        devicePixelRatio,
-        2
-      )
-    );
-
-
-    camera.aspect =
-      innerWidth /
-      innerHeight;
-
-
-    camera.updateProjectionMatrix();
-
-  }
-);
-
-
-/* =========================================================
-   START
-========================================================= */
-
-loading.style.display =
-  "none";
-
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+});
 
 /* =========================================================
    GAME LOOP
 ========================================================= */
 
-const clock =
-  new THREE.Clock();
-
+const clock = new THREE.Clock();
 
 function animate() {
+  requestAnimationFrame(animate);
 
-  requestAnimationFrame(
-    animate
-  );
-
-
-  const delta =
-    Math.min(
-      clock.getDelta(),
-      .033
-    );
-
+  const delta = Math.min(clock.getDelta(),.033);
 
   updateMovement(delta);
-
-
-  updateTrigger(delta);
-
-
-  updateRecoil();
-
-
   updateReload();
+  updateEffects(delta);
+  updateCamera(delta);
+  updateWeapon(delta);
+  updateCasings(delta);
 
-
-  updateCamera();
-
-
-  updateWeapon();
-
-
-  updateFlash(delta);
-
-
-  updateLooseObjects(delta);
-
-
-  renderer.render(
-    scene,
-    camera
-  );
-
+  renderer.render(scene,camera);
 }
-
 
 animate();
 
 </script>
-
 </body>
 </html>

@@ -1,3 +1,8 @@
+
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -174,6 +179,43 @@ const oldMagazine=magazine(),freshMagazine=magazine();oldMagazine.visible=freshM
 
 const BASE_EYE=1.68,WALK=3.9,SPRINT=WALK*2,ADS_SPEED=2.35,RELOAD_SPEED=1.8,GRAVITY=18.5,JUMP_V=6.6,player={x:0,z:1,eyeHeight:BASE_EYE,ammo:12,score:0,verticalVelocity:0,grounded:true},keys={};
 let yaw=0,pitch=0,ads=false,pointerLocked=false,currentFov=72,targetFov=72,recoilPitch=0,recoilYaw=0,weaponKick=0,weaponTilt=0;const mouseSensitivity=.00225;
+
+/* =========================================================
+   CAMERA MODE
+   F4 = THIRD PERSON
+   F5 = FIRST PERSON
+========================================================= */
+
+let cameraMode='first';
+const thirdPersonDistance=3.4;
+const thirdPersonHeight=.72;
+const thirdPersonLookHeight=1.28;
+const thirdPersonCameraTarget=new THREE.Vector3();
+const thirdPersonDesiredPosition=new THREE.Vector3();
+
+function setCameraMode(mode){
+  cameraMode=mode==='third'?'third':'first';
+
+  /*
+    First-person weapon/hands are hidden in third person.
+    The world-space character remains visible.
+  */
+  weaponRig.visible=cameraMode==='first';
+
+  /*
+    Do not render the player's own head in first person.
+    This guarantees jumping cannot reveal the top of it.
+  */
+  if(playerColliderVisual?.userData?.head){
+    playerColliderVisual.userData.head.visible=cameraMode==='third';
+  }
+
+  if(cameraMode==='third'){
+    showMessage('THIRD PERSON');
+  }else{
+    showMessage('FIRST PERSON');
+  }
+}
 let lastW=-999,sprinting=false;const DOUBLE=.28;
 function updateSprint(){if(!keys.KeyW||ads||reloading)sprinting=false}
 function jump(){if(player.grounded){player.verticalVelocity=JUMP_V;player.grounded=false}}
@@ -181,14 +223,141 @@ function jump(){if(player.grounded){player.verticalVelocity=JUMP_V;player.ground
 renderer.domElement.addEventListener('mousedown',e=>{if(e.button!==0)return;ensureAudio();if(document.pointerLockElement!==renderer.domElement){renderer.domElement.requestPointerLock();return}fire()});
 document.addEventListener('pointerlockchange',()=>{pointerLocked=document.pointerLockElement===renderer.domElement;document.body.classList.toggle('locked',pointerLocked);if(!pointerLocked){setADS(false);sprinting=false}});
 document.addEventListener('mousemove',e=>{if(!pointerLocked)return;yaw-=e.movementX*mouseSensitivity;pitch-=e.movementY*mouseSensitivity;pitch=THREE.MathUtils.clamp(pitch,-Math.PI/2+.015,Math.PI/2-.015)});
-document.addEventListener('keydown',e=>{const down=!!keys[e.code];keys[e.code]=true;if(e.code==='KeyW'&&!down){const n=performance.now()/1000;if(n-lastW<=DOUBLE)sprinting=true;lastW=n}if((e.code==='ShiftLeft'||e.code==='ShiftRight')&&!down){e.preventDefault();setADS(true)}if(e.code==='Space'&&!down){e.preventDefault();jump()}if(e.code==='KeyR'&&!down){e.preventDefault();startReload()}});
+document.addEventListener('keydown',e=>{const down=!!keys[e.code];keys[e.code]=true;if(e.code==='KeyW'&&!down){const n=performance.now()/1000;if(n-lastW<=DOUBLE)sprinting=true;lastW=n}if((e.code==='ShiftLeft'||e.code==='ShiftRight')&&!down){e.preventDefault();setADS(true)}if(e.code==='Space'&&!down){e.preventDefault();jump()}
+if(e.code==='F4'&&!down){
+  e.preventDefault();
+  setCameraMode('third');
+}
+if(e.code==='F5'&&!down){
+  e.preventDefault();
+  setCameraMode('first');
+}
+if(e.code==='KeyR'&&!down){e.preventDefault();startReload()}});
 document.addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='KeyW')sprinting=false;if(e.code==='ShiftLeft'||e.code==='ShiftRight')setADS(false)});
 
 function setADS(v){if(reloading)v=false;ads=v;if(ads)sprinting=false;document.body.classList.toggle('ads',ads);targetFov=ads?45:sprinting?79:72}
 
 let bobTime=0,shakeX=0,shakeY=0,runRoll=0,currentMove=0;
-function updateCamera(dt){updateSprint();let bx=0,by=0;if(player.grounded&&currentMove>.05){bobTime+=dt*(sprinting?15.5:9.5);const a=sprinting?.045:.018;bx=Math.sin(bobTime)*a;by=Math.abs(Math.cos(bobTime*2))*a*.65;if(sprinting){shakeX=THREE.MathUtils.lerp(shakeX,(Math.random()-.5)*.0065,.35);shakeY=THREE.MathUtils.lerp(shakeY,(Math.random()-.5)*.0065,.35);runRoll=Math.sin(bobTime*.5)*.010}}else{shakeX=THREE.MathUtils.lerp(shakeX,0,.18);shakeY=THREE.MathUtils.lerp(shakeY,0,.18);runRoll=THREE.MathUtils.lerp(runRoll,0,.18)}
-targetFov=ads?45:sprinting?79:72;currentFov=THREE.MathUtils.lerp(currentFov,targetFov,1-Math.exp(-10*dt));camera.fov=currentFov;camera.updateProjectionMatrix();camera.position.set(player.x+bx*.35,player.eyeHeight+by,player.z);camera.rotation.y=yaw+recoilYaw+shakeX;camera.rotation.x=pitch+recoilPitch+shakeY;camera.rotation.z=runRoll;modeText.textContent=reloading?'RELOADING':ads?'ADS • TIGHT SPREAD':sprinting?'SPRINTING • 2× SPEED':player.grounded?'HIP FIRE':'AIRBORNE'}
+function updateCamera(dt){
+  updateSprint();
+
+  let bx=0,by=0;
+
+  if(player.grounded&&currentMove>.05){
+    bobTime+=dt*(sprinting?15.5:9.5);
+    const a=sprinting?.045:.018;
+    bx=Math.sin(bobTime)*a;
+    by=Math.abs(Math.cos(bobTime*2))*a*.65;
+
+    if(sprinting){
+      shakeX=THREE.MathUtils.lerp(
+        shakeX,
+        (Math.random()-.5)*.0065,
+        .35
+      );
+      shakeY=THREE.MathUtils.lerp(
+        shakeY,
+        (Math.random()-.5)*.0065,
+        .35
+      );
+      runRoll=Math.sin(bobTime*.5)*.010;
+    }
+  }else{
+    shakeX=THREE.MathUtils.lerp(shakeX,0,.18);
+    shakeY=THREE.MathUtils.lerp(shakeY,0,.18);
+    runRoll=THREE.MathUtils.lerp(runRoll,0,.18);
+  }
+
+  targetFov=ads?45:sprinting?79:72;
+  currentFov=THREE.MathUtils.lerp(
+    currentFov,
+    targetFov,
+    1-Math.exp(-10*dt)
+  );
+
+  camera.fov=currentFov;
+  camera.updateProjectionMatrix();
+
+  if(cameraMode==='first'){
+    /*
+      Camera and player body share the same vertical physics.
+      This prevents the camera from rising above the player's
+      head during a jump.
+    */
+    camera.position.set(
+      player.x+bx*.35,
+      player.eyeHeight+by,
+      player.z
+    );
+
+    camera.rotation.order='YXZ';
+    camera.rotation.y=yaw+recoilYaw+shakeX;
+    camera.rotation.x=pitch+recoilPitch+shakeY;
+    camera.rotation.z=runRoll;
+  }else{
+    /*
+      Third-person camera:
+      several feet behind the player, slightly elevated.
+      It orbits with the same yaw/pitch used for aiming.
+    */
+    const lookPitch=THREE.MathUtils.clamp(
+      pitch,
+      -.95,
+      1.05
+    );
+
+    const forwardX=-Math.sin(yaw);
+    const forwardZ=-Math.cos(yaw);
+
+    const backX=-forwardX;
+    const backZ=-forwardZ;
+
+    const verticalCameraOffset=
+      thirdPersonHeight+
+      Math.sin(-lookPitch)*thirdPersonDistance*.34;
+
+    thirdPersonDesiredPosition.set(
+      player.x+backX*thirdPersonDistance,
+      player.eyeHeight+verticalCameraOffset,
+      player.z+backZ*thirdPersonDistance
+    );
+
+    /*
+      Smooth trailing motion, but keep it responsive enough
+      for aiming.
+    */
+    camera.position.lerp(
+      thirdPersonDesiredPosition,
+      1-Math.exp(-14*dt)
+    );
+
+    thirdPersonCameraTarget.set(
+      player.x+forwardX*2.4,
+      player.eyeHeight-.40+
+      Math.sin(lookPitch)*2.0,
+      player.z+forwardZ*2.4
+    );
+
+    camera.lookAt(thirdPersonCameraTarget);
+
+    /*
+      Recoil still nudges third person slightly.
+    */
+    camera.rotation.x+=recoilPitch*.42;
+    camera.rotation.y+=recoilYaw*.42;
+    camera.rotation.z=runRoll*.35;
+  }
+
+  modeText.textContent=reloading
+    ?'RELOADING'
+    :ads
+      ?'ADS • TIGHT SPREAD'
+      :sprinting
+        ?'SPRINTING • 2× SPEED'
+        :player.grounded
+          ?(cameraMode==='third'?'THIRD PERSON':'HIP FIRE')
+          :'AIRBORNE';
+}
 
 const hipPos=new THREE.Vector3(.22,-.25,-1.05),adsPos=new THREE.Vector3(0,-.145,-.82),reloadPos=new THREE.Vector3(.24,-.23,-.96),sprintPos=new THREE.Vector3(.32,-.34,-.93);
 function updateWeapon(dt){
@@ -509,6 +678,9 @@ for(const x of[-.13,.13]){
   leg.position.set(x,.21,0);
   leg.castShadow=true;
   playerColliderVisual.add(leg);
+
+  if(x<0)playerColliderVisual.userData.leftLeg=leg;
+  else playerColliderVisual.userData.rightLeg=leg;
 }
 
 for(const x of[-.32,.32]){
@@ -520,6 +692,9 @@ for(const x of[-.32,.32]){
   arm.rotation.z=x<0?.10:-.10;
   arm.castShadow=true;
   playerColliderVisual.add(arm);
+
+  if(x<0)playerColliderVisual.userData.leftArm=arm;
+  else playerColliderVisual.userData.rightArm=arm;
 }
 
 const playerHeadVisual=new THREE.Mesh(
@@ -530,7 +705,17 @@ playerHeadVisual.position.y=1.52;
 playerHeadVisual.castShadow=true;
 playerColliderVisual.add(playerHeadVisual);
 
+playerColliderVisual.userData.head=playerHeadVisual;
+playerColliderVisual.userData.torso=playerTorso;
+playerColliderVisual.userData.waist=playerWaist;
+
 scene.add(playerColliderVisual);
+
+/*
+  First-person starts with the head hidden from rendering.
+  The invisible head collider remains active.
+*/
+playerHeadVisual.visible=false;
 
 const solidColliders=[];
 function addBoxCollider(x,z,w,d,name){solidColliders.push({type:'box',x,z,hw:w/2,hd:d/2,name})}
@@ -1357,8 +1542,74 @@ updateMovement=function(dt){
     }
   }else player.eyeHeight=BASE_EYE;
 
-  playerColliderVisual.position.set(player.x,0,player.z);
+  /*
+    The visible character follows the SAME vertical movement
+    as the first-person camera/player physics.
+  */
+  const jumpOffset=player.eyeHeight-BASE_EYE;
+  playerColliderVisual.position.set(
+    player.x,
+    jumpOffset,
+    player.z
+  );
   playerColliderVisual.rotation.y=yaw;
+
+  /*
+    Character locomotion animation.
+    Legs and arms swing while walking/running.
+  */
+  const moving=currentMove>.05&&player.grounded;
+  const animSpeed=sprinting?13.5:8.0;
+  const swingAmount=sprinting?.72:.42;
+
+  if(moving){
+    const phase=bobTime*(sprinting?.88:.82);
+
+    const leftLeg=playerColliderVisual.userData.leftLeg;
+    const rightLeg=playerColliderVisual.userData.rightLeg;
+    const leftArm=playerColliderVisual.userData.leftArm;
+    const rightArm=playerColliderVisual.userData.rightArm;
+
+    if(leftLeg&&rightLeg){
+      leftLeg.rotation.x=Math.sin(phase)*swingAmount;
+      rightLeg.rotation.x=-Math.sin(phase)*swingAmount;
+    }
+
+    if(leftArm&&rightArm){
+      leftArm.rotation.x=-Math.sin(phase)*swingAmount*.80;
+      rightArm.rotation.x=Math.sin(phase)*swingAmount*.80;
+    }
+  }else if(!player.grounded){
+    const leftLeg=playerColliderVisual.userData.leftLeg;
+    const rightLeg=playerColliderVisual.userData.rightLeg;
+    const leftArm=playerColliderVisual.userData.leftArm;
+    const rightArm=playerColliderVisual.userData.rightArm;
+
+    if(leftLeg&&rightLeg){
+      leftLeg.rotation.x=THREE.MathUtils.lerp(leftLeg.rotation.x,-.18,.18);
+      rightLeg.rotation.x=THREE.MathUtils.lerp(rightLeg.rotation.x,.24,.18);
+    }
+
+    if(leftArm&&rightArm){
+      leftArm.rotation.x=THREE.MathUtils.lerp(leftArm.rotation.x,-.28,.18);
+      rightArm.rotation.x=THREE.MathUtils.lerp(rightArm.rotation.x,-.28,.18);
+    }
+  }else{
+    for(const limb of[
+      playerColliderVisual.userData.leftLeg,
+      playerColliderVisual.userData.rightLeg,
+      playerColliderVisual.userData.leftArm,
+      playerColliderVisual.userData.rightArm
+    ]){
+      if(limb){
+        limb.rotation.x=THREE.MathUtils.lerp(
+          limb.rotation.x,
+          0,
+          .18
+        );
+      }
+    }
+  }
 };
 
 // Weapon pose override with mathematically centered rifle optic.
